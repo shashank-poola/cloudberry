@@ -1,0 +1,30 @@
+{
+  "id": "11111111-1111-4111-8111-111111111102",
+  "organization_id": "11111111-1111-4111-8111-111111111111",
+  "source": "linear",
+  "external_event_id": "linear-issue-auth-123",
+  "external_url": "https://linear.example.test/acme/issue/AUTH-123",
+  "event_type": "issue",
+  "occurred_at": "2025-01-11T09:00:00Z",
+  "received_at": "2025-01-11T09:01:00Z",
+  "actor": {
+    "id": "linear-user-maya",
+    "name": "Maya Chen",
+    "email": "maya.chen@example.test"
+  },
+  "title": "Implement Supabase Auth",
+  "content": "Implement Supabase Auth for the Cloudberry authentication project. This task follows Slack decision event 11111111-1111-4111-8111-111111111101 and is requested by Maya Chen.",
+  "metadata": {
+    "identifier": "AUTH-123",
+    "status": "Todo",
+    "project": "Cloudberry authentication"
+  },
+  "raw_payload": {
+    "provider": "linear",
+    "issue": {
+      "identifier": "AUTH-123",
+      "title": "Implement Supabase Auth",
+      "state": "Todo"
+    }
+  }
+}

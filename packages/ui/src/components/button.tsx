@@ -52,4 +52,7 @@ function Button({
   )
 }
 
+// This variant factory is part of the UI package's public API; keep the export
+// while opting out of the Vite-only component export check for this line.
+// eslint-disable-next-line react-refresh/only-export-components
 export { Button, buttonVariants }

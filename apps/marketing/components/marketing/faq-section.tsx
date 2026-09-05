@@ -1,0 +1,10 @@
+"use client"
+
+import { useState } from "react"
+
+const faqs = [["What does it cost?", "Start with $30 in free credit. When that runs out, plans start at $10 a month and you only pay for the time your box is running."], ["Which agents can I run?", "Any agent that runs in a Linux development environment. Bring your own CLI, coding agent, scripts, and tooling."], ["Does it work with the Claude and ChatGPT desktop apps?", "Yes. Cloudberry boxes expose the same ports and files you already use locally, so your existing workflow stays familiar."], ["Can I use it from my phone?", "You can monitor boxes, read activity, and reconnect from any browser. The full development experience is best on a laptop or desktop."], ["What happens when I close the laptop?", "Your box keeps running in the cloud. Long builds, agent tasks, and sync jobs continue until they finish or you stop them."], ["Where do my files live?", "Your project files live on your encrypted Cloudberry box and sync through the workspace connection you choose."], ["Can I change the size later?", "Yes. Resize your box as the work changes, without recreating the environment or losing your files."], ["Do I have to install anything on the box?", "No. The box is ready with the essentials, and you can add any package or tool your project needs."]]
+
+export function FaqSection() {
+  const [active, setActive] = useState<number | null>(0)
+  return <section className="light-section faq-section" id="faq"><div className="shell faq-grid"><div className="faq-intro"><div className="eyebrow">GOOD TO KNOW</div><h2>Good to<br /><em>know.</em></h2><p>The short answers.<br />The long ones are in the <a href="#top">docs</a>.</p></div><div className="faq-list">{faqs.map(([question, answer], index) => { const isActive = active === index; return <div className={`faq-item${isActive ? " faq-item-active" : ""}`} key={question}><button type="button" aria-expanded={isActive} onClick={() => setActive(isActive ? null : index)}><span>{question}</span><b>{isActive ? "−" : "+"}</b></button><div className="faq-answer"><p>{answer}</p></div></div> })}</div></div></section>
+}

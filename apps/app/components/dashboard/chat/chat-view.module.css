@@ -1,0 +1,29 @@
+.composer > div {
+  max-width: none;
+}
+
+.composer > div > div {
+  min-height: 132px;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.composer button[class*="pill"]:not([aria-label]) {
+  display: none !important;
+}
+
+.composer [contenteditable="true"] {
+  min-height: 56px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.composer [contenteditable="true"][data-empty]::before {
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .composer > div > div {
+    min-height: 120px;
+  }
+}

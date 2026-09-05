@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cloudberry.app/contracts/company-event.v1.json",
+  "title": "CompanyEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "organization_id",
+    "source",
+    "external_event_id",
+    "external_url",
+    "event_type",
+    "occurred_at",
+    "received_at",
+    "actor",
+    "title",
+    "content",
+    "metadata",
+    "raw_payload"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "organization_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "external_event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "external_url": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uri"
+        },
+        { "type": "null" }
+      ]
+    },
+    "event_type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actor": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": { "type": "string", "minLength": 1, "maxLength": 512 },
+            "name": { "type": "string", "minLength": 1, "maxLength": 512 },
+            "email": { "type": "string", "format": "email", "maxLength": 512 }
+          },
+          "minProperties": 1
+        }
+      ]
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 2000
+        },
+        { "type": "null" }
+      ]
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100000
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "raw_payload": {
+      "anyOf": [
+        { "type": "object" },
+        { "type": "array" }
+      ]
+    }
+  }
+}

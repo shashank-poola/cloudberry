@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 
-# env files (can opt-in for committing if needed)
+# env files, including environment templates
 .env*
 
 # turbo
@@ -31,3 +31,22 @@ dist-ssr
 
 # typescript
 *.tsbuildinfo
+
+# python
+__pycache__/
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+.coverage
+coverage/
+htmlcov/
+
+# credentials and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+credentials*.json

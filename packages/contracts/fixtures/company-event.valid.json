@@ -1,0 +1,27 @@
+{
+  "id": "6db5f9e6-f7a8-41b8-a9e5-6ac1cf16de64",
+  "organization_id": "33ab7c10-8567-4e77-88ff-699e21e4e3d6",
+  "source": "slack",
+  "external_event_id": "1717218012.000100",
+  "external_url": "https://example.slack.com/archives/C123/p1717218012000100",
+  "event_type": "message",
+  "occurred_at": "2026-09-05T06:30:12Z",
+  "received_at": "2026-09-05T06:30:16Z",
+  "actor": {
+    "id": "U123",
+    "name": "Ada Lovelace",
+    "email": "ada@example.com"
+  },
+  "title": null,
+  "content": "Use WorkOS for Google SSO.",
+  "metadata": {
+    "channel_id": "C123",
+    "thread_ts": "1717218012.000100"
+  },
+  "raw_payload": {
+    "type": "event_callback",
+    "event": {
+      "type": "message"
+    }
+  }
+}

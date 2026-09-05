@@ -1,0 +1,3 @@
+export function CtaSection() {
+  return <section className="cta-section shell" id="start"><span id="pricing" className="anchor-target" aria-hidden="true" /><div className="eyebrow eyebrow-light"><span className="status-dot" /> READY WHEN YOU ARE</div><h2>Your box is<br /><em>two minutes away.</em></h2><p>Start with $30 of free credit, no card required.<br />Plans from $10 a month, billed by the hour.</p><div className="hero-actions"><a className="button button-light" href="#top">Get started <span aria-hidden="true">↗</span></a><a className="button button-dark" href="#pricing">View pricing</a></div></section>
+}

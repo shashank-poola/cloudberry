@@ -1,0 +1,30 @@
+{
+  "id": "11111111-1111-4111-8111-111111111104",
+  "organization_id": "11111111-1111-4111-8111-111111111111",
+  "source": "slack",
+  "external_event_id": "slack-message-auth-002",
+  "external_url": "https://slack.example.test/archives/engineering/p1737388800000000",
+  "event_type": "message",
+  "occurred_at": "2025-01-20T16:00:00Z",
+  "received_at": "2025-01-20T16:01:00Z",
+  "actor": {
+    "id": "slack-user-maya",
+    "name": "Maya Chen",
+    "email": "maya.chen@example.test"
+  },
+  "title": "Authentication provider update",
+  "content": "Maya Chen: The Cloudberry team changed the authentication provider decision. We will use WorkOS instead of Supabase Auth. This supersedes the earlier Supabase Auth decision.",
+  "metadata": {
+    "channel": "engineering",
+    "decision_key": "authentication-provider",
+    "supersedes_event_id": "11111111-1111-4111-8111-111111111101"
+  },
+  "raw_payload": {
+    "provider": "slack",
+    "team": "cloudberry",
+    "message": {
+      "ts": "1737388800.000000",
+      "text": "We will use WorkOS instead of Supabase Auth."
+    }
+  }
+}

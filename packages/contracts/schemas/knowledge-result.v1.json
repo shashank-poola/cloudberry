@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cloudberry.app/contracts/knowledge-result.v1.json",
+  "title": "KnowledgeSearchResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["organization_id", "query", "retrieved_at", "results"],
+  "properties": {
+    "organization_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "query": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "retrieved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type", "content", "score", "source_event_ids"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "type": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "content": { "type": "string", "minLength": 1 },
+          "score": { "type": "number", "minimum": 0 },
+          "source_event_ids": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" },
+            "minItems": 1
+          }
+        }
+      }
+    }
+  }
+}
