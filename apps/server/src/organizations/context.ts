@@ -61,8 +61,7 @@ export const organizationContextMiddleware = async (
       role: membership.role === "owner" ? "owner" : "member",
     }
     next()
-  } catch (error) {
-    console.error("organizationContextMiddleware error", error)
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,

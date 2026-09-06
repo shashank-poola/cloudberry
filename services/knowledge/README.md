@@ -71,9 +71,11 @@ bun run start
 ```
 
 The seed command inserts the fixtures into `company_events`; the database
-trigger creates one `knowledge_jobs` row per event. The worker claims those
-jobs, sends normalized events to the knowledge service, and records success or
-retry/failure state.
+trigger creates one `knowledge_jobs` row per event. Set `SEED_ORGANIZATION_ID`
+to the organization UUID of the signed-in demo user so that organization-scoped
+search can retrieve the seeded knowledge. The worker claims those jobs, sends
+normalized events to the knowledge service, and records success or retry/failure
+state.
 
 The fixtures are in `tests/fixtures` and cover a Slack decision, a Linear task,
 a GitHub pull request, and a later decision that supersedes the first provider.

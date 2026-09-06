@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test"
-import { InvalidCompanyEventError, parseCompanyEvent } from "./schema"
+import {
+  InvalidCompanyEventError,
+  parseCompanyEvent,
+} from "../../src/knowledge/schema"
 
 const event = {
   id: "6db5f9e6-f7a8-41b8-a9e5-6ac1cf16de64",

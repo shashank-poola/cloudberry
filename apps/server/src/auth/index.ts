@@ -63,8 +63,7 @@ export const authMiddleware = async (
     req.user = user
     req.accessToken = accessToken
     next()
-  } catch (error) {
-    console.log("authMiddleware error", error)
+  } catch {
     res.status(401).json({
       success: false,
       data: null,
@@ -96,8 +95,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       },
       error: null,
     })
-  } catch (error) {
-    console.log("getCurrentUser error", error)
+  } catch {
     res.status(500).json({
       success: false,
       data: null,

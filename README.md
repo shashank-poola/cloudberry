@@ -71,9 +71,12 @@ bunx supabase link --project-ref <project-ref>
 bunx supabase db push
 ```
 
-The worker seeds a deterministic four-event chain for the demo organization:
+The worker seeds a deterministic four-event chain. For a signed-in dashboard
+user to retrieve it, target that user's organization UUID (found in
+`organization_members`) rather than the fixed fixture organization:
 
 ```powershell
+$env:SEED_ORGANIZATION_ID = "<signed-in-organization-uuid>"
 cd apps/worker
 bun run seed
 ```
@@ -146,10 +149,28 @@ The ingestion pipeline is validated end to end: Supabase company events are
 claimed by the worker, ingested into Graphiti/FalkorDB, and returned through
 organization-scoped search with event provenance.
 
-The dashboard, Cloudpedia, plugin cards, computer view, and prompt composer are
-currently product UI foundations. Their next step is wiring authenticated chat
-and search requests to the API and knowledge service. External Slack, Linear,
-GitHub, and other connector ingestion is not yet enabled.
+The first Codex computer slice is also wired end to end:
+
+```text
+Browser → authenticated API → Prized company computer → Codex CLI
+                         └→ organization-scoped knowledge search
+```
+
+Cloudberry provisions or wakes one Prized computer per organization, adds
+bounded company context to each prompt, and returns sanitized Codex session
+events to the authenticated browser. The user authenticates Codex directly on
+the provided computer; Cloudberry never stores that credential.
+
+External Slack, Linear, GitHub, and other connector ingestion is intentionally
+not enabled yet.
+
+## Tests
+
+Run the TypeScript test suite from the repository root:
+
+```powershell
+bun run test
+```
 
 ## License
 

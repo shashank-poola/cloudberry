@@ -4,7 +4,6 @@ import Image from "next/image"
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -15,7 +14,6 @@ import {
   Check,
   ChevronRight,
   Image as ImageIcon,
-  Loader2,
   Paperclip,
   Plug,
   Plus,
@@ -23,52 +21,12 @@ import {
 } from "lucide-react"
 import styles from "./prompt-input.module.css"
 
-const ENHANCED =
-  "This is an example prompt - rewritten to be clear and specific: state the goal, add the relevant context and constraints, define the expected output format and tone, and note any assumptions. Ask a clarifying question first if key details are missing."
-
-/**
- * Turn a raw prompt into an improved one. This is the integration seam:
- * replace the mock body with a real request to your model/API. The component
- * only depends on it resolving to the enhanced prompt string (and honouring
- * the AbortSignal so an in-flight call can be cancelled).
- */
-async function mockEnhance(
-  prompt: string,
-  signal?: AbortSignal
-): Promise<string> {
-  // --- MOCK (demo only) - remove when wiring a real backend ----------
-  await new Promise((r) => setTimeout(r, 2500))
-  if (signal?.aborted) throw new DOMException("Aborted", "AbortError")
-  return ENHANCED
-  // --- REAL API (example) --------------------------------------------
-  // const res = await fetch("/api/enhance", {
-  //   method: "POST",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify({ prompt }),
-  //   signal,
-  // });
-  // if (!res.ok) throw new Error("Enhance request failed");
-  // return (await res.json()).prompt as string;
-}
-
 const MODELS = [
   {
-    id: "claude-opus-4.8",
-    name: "Claude Opus 4.8",
-    desc: "Anthropic's most capable model - best for complex, multi-step reasoning.",
-    context: "200k context window",
-  },
-  {
-    id: "gpt-5.6",
-    name: "GPT-5.6",
-    desc: "OpenAI's flagship - strong all-round performance and tool use.",
-    context: "400k context window",
-  },
-  {
-    id: "gemini-2.5-pro",
-    name: "Gemini 2.5 Pro",
-    desc: "Google's long-context model - great for large documents and codebases.",
-    context: "1M context window",
+    id: "codex",
+    name: "Codex CLI",
+    desc: "Runs on your company's Prized.dev computer with your Codex authentication.",
+    context: "Cloudberry company context included",
   },
 ]
 
@@ -78,10 +36,26 @@ const PLUGINS = [
   { id: "github", name: "GitHub", logo: "/plugins/github.png" },
 ]
 
-// Official brand marks (from Wikimedia Commons). ChatGPT is monochrome and
-// follows the text colour; Claude uses Anthropic's orange; Gemini keeps its
-// original radial gradient.
 function ModelIcon({ id }: { id: string }) {
+  if (id === "codex") {
+    return (
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="m8 5-5 7 5 7" />
+        <path d="m16 5 5 7-5 7" />
+        <path d="m14 4-4 16" />
+      </svg>
+    )
+  }
   if (id.startsWith("gpt")) {
     return (
       <svg
@@ -147,18 +121,20 @@ const escapeHtml = (str: string) =>
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] ?? c
   )
 
-type Phase = "idle" | "enhancing" | "enhanced"
 type Attachment = { id: number; name: string; kind: "image" | "file" }
 
+type PromptInputProps = {
+  onSubmitAction?: (prompt: string) => void
+  disabled?: boolean
+}
+
 export function PromptInput({
-  onEnhance = mockEnhance,
-}: {
-  onEnhance?: (prompt: string, signal?: AbortSignal) => Promise<string>
-} = {}) {
+  onSubmitAction,
+  disabled = false,
+}: PromptInputProps = {}) {
   // `value` mirrors the editor's plain text (skill pills contribute their
-  // label), so it drives the empty/placeholder + enhance/send logic.
+  // label), so it drives the empty/placeholder + send logic.
   const [value, setValue] = useState("")
-  const [phase, setPhase] = useState<Phase>("idle")
   const [menuOpen, setMenuOpen] = useState(false)
   const [skillsOpen, setSkillsOpen] = useState(false)
   const [hoveredModel, setHoveredModel] = useState<string | null>(null)
@@ -177,13 +153,7 @@ export function PromptInput({
   const frameRef = useRef<HTMLDivElement>(null)
   const plusRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const preEnhanceHTML = useRef("")
-  const pendingHTML = useRef<string | null>(null)
-  // height of the frame captured right before an enhance/revert swap, so the
-  // new height can be animated from it (FLIP) instead of jumping.
-  const flipFrom = useRef<number | null>(null)
   const savedRange = useRef<Range | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
   const nextId = useRef(1)
   const slashOpenRef = useRef(false)
   const slashIndexRef = useRef(0)
@@ -198,9 +168,7 @@ export function PromptInput({
   const slashKeyLock = useRef(false)
 
   const hasText = value.trim().length > 0
-  const enhancing = phase === "enhancing"
-  const sendActive = hasText && !enhancing
-  const showPill = hasText && !enhancing
+  const sendActive = hasText && !disabled
   const slashResults = PLUGINS.filter((plugin) =>
     plugin.name.toLowerCase().includes(slashQuery.toLowerCase())
   )
@@ -210,20 +178,6 @@ export function PromptInput({
     slashIndexRef.current = slashIndex
     slashResultsRef.current = slashResults
   }, [slashOpen, slashIndex, slashResults])
-
-  // Focus the editor and drop the caret at the very end of its content.
-  const focusEnd = () => {
-    const editor = editorRef.current
-    if (!editor) return
-    editor.focus()
-    const range = document.createRange()
-    range.selectNodeContents(editor)
-    range.collapse(false)
-    const sel = window.getSelection()
-    sel?.removeAllRanges()
-    sel?.addRange(range)
-    savedRange.current = range.cloneRange()
-  }
 
   const syncFromEditor = () => {
     const editor = editorRef.current
@@ -411,7 +365,6 @@ export function PromptInput({
 
   const onEditorInput = () => {
     syncFromEditor()
-    if (phase === "enhanced") setPhase("idle")
     detectSlash()
   }
 
@@ -541,80 +494,16 @@ export function PromptInput({
     }
   }, [menuOpen, closeMenu])
 
-  // After an enhance/revert the editor is shown editable again - write the
-  // pending HTML into it (enhanced text, or the restored original w/ pills).
-  useLayoutEffect(() => {
-    if (enhancing || pendingHTML.current === null) return
-    const editor = editorRef.current
-    if (!editor) return
-    editor.innerHTML = pendingHTML.current
-    pendingHTML.current = null
-    syncFromEditor()
-    requestAnimationFrame(focusEnd)
-
-    // Animate the frame from its previous height to the new one so the input
-    // doesn't jump when the enhanced/original text changes its size.
-    const frame = frameRef.current
-    const from = flipFrom.current
-    flipFrom.current = null
-    if (!frame || from === null) return
-    const to = frame.offsetHeight
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    if (reduce || from === to) return
-    frame.style.height = from + "px"
-    frame.style.overflow = "hidden"
-    void frame.offsetHeight // force reflow so the start height is committed
-    frame.style.transition = "height 200ms cubic-bezier(0.22, 1, 0.36, 1)"
-    frame.style.height = to + "px"
-    let done = false
-    const finish = () => {
-      if (done) return
-      done = true
-      frame.style.transition = ""
-      frame.style.height = ""
-      frame.style.overflow = ""
-      frame.removeEventListener("transitionend", finish)
-    }
-    frame.addEventListener("transitionend", finish)
-    setTimeout(finish, 260)
-  }, [phase, enhancing])
-
-  // Cancel any in-flight enhance on unmount.
-  useEffect(() => () => abortRef.current?.abort(), [])
-
-  const runEnhance = async () => {
-    if (!hasText || enhancing) return
-    preEnhanceHTML.current = editorRef.current?.innerHTML ?? ""
-    setPhase("enhancing")
-    const ac = new AbortController()
-    abortRef.current = ac
-    try {
-      const result = await onEnhance(value, ac.signal)
-      if (ac.signal.aborted) return
-      pendingHTML.current = escapeHtml(result)
-      flipFrom.current = frameRef.current?.offsetHeight ?? null
-      setPhase("enhanced")
-    } catch {
-      // Restore the untouched prompt if the call fails/aborts.
-      if (ac.signal.aborted) return
-      pendingHTML.current = preEnhanceHTML.current
-      setPhase("idle")
-    }
-  }
-
-  const revert = () => {
-    abortRef.current?.abort()
-    pendingHTML.current = preEnhanceHTML.current
-    flipFrom.current = frameRef.current?.offsetHeight ?? null
-    setPhase("idle")
-  }
-
   const send = () => {
     if (!sendActive) return
+    const prompt = value.trim()
+    if (!prompt) return
+
+    onSubmitAction?.(prompt)
+
     const editor = editorRef.current
     if (editor) editor.innerHTML = ""
     setValue("")
-    setPhase("idle")
     setAttachments([])
     setExitingAtt([])
     closeSlash()
@@ -665,11 +554,7 @@ export function PromptInput({
         }}
       />
 
-      <div
-        ref={frameRef}
-        className={styles.frame}
-        data-enhancing={enhancing || undefined}
-      >
+      <div ref={frameRef} className={styles.frame}>
         {attachments.length > 0 && (
           <div className={styles.chips}>
             {attachments.map((att) => (
@@ -700,31 +585,26 @@ export function PromptInput({
         )}
 
         <div className={styles.editorWrap}>
-          {enhancing ? (
-            <div className={styles.enhancingText} aria-live="polite">
-              {value}
-            </div>
-          ) : (
-            <div
-              ref={editorRef}
-              className={styles.field}
-              contentEditable
-              suppressContentEditableWarning
-              role="textbox"
-              aria-multiline="true"
-              aria-label="Ask Cloudberry anything..."
-              data-empty={!hasText || undefined}
-              data-placeholder="Ask Cloudberry anything..."
-              onInput={onEditorInput}
-              onKeyDown={onEditorKeyDown}
-              onKeyUp={saveSelection}
-              onMouseUp={saveSelection}
-              onBlur={saveSelection}
-              onClick={onEditorClick}
-            />
-          )}
+          <div
+            ref={editorRef}
+            className={styles.field}
+            contentEditable={!disabled}
+            suppressContentEditableWarning
+            role="textbox"
+            aria-multiline="true"
+            aria-label="Ask Cloudberry anything..."
+            aria-disabled={disabled}
+            data-empty={!hasText || undefined}
+            data-placeholder="Ask Cloudberry anything..."
+            onInput={onEditorInput}
+            onKeyDown={onEditorKeyDown}
+            onKeyUp={saveSelection}
+            onMouseUp={saveSelection}
+            onBlur={saveSelection}
+            onClick={onEditorClick}
+          />
 
-          {slashOpen && !enhancing && (
+          {slashOpen && !disabled && (
             <div
               className={styles.slashMenu}
               role="listbox"
@@ -783,6 +663,7 @@ export function PromptInput({
               data-open={menuOpen || undefined}
               aria-label="Add attachment or switch model"
               aria-expanded={menuOpen}
+              disabled={disabled}
               onClick={() => {
                 if (menuOpen) closeMenu()
                 else setMenuOpen(true)
@@ -911,24 +792,6 @@ export function PromptInput({
           </div>
 
           <div className={styles.right}>
-            {enhancing ? (
-              <span
-                className={[styles.iconBtn, styles.spinnerBtn].join(" ")}
-                aria-label="Enhancing prompt"
-              >
-                <Loader2 size={14} className={styles.spinner} />
-              </span>
-            ) : (
-              showPill && (
-                <button
-                  type="button"
-                  className={styles.pill}
-                  onClick={phase === "enhanced" ? revert : runEnhance}
-                >
-                  {phase === "enhanced" ? "Revert" : "Enhance Prompt"}
-                </button>
-              )
-            )}
             <button
               type="button"
               className={[
