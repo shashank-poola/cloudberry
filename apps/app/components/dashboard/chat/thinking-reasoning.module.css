@@ -1,0 +1,49 @@
+.root {
+  display: flex;
+  width: min(100%, 360px);
+  min-width: 0;
+  min-height: 20px;
+  align-items: center;
+  color: #a3a3a3;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  letter-spacing: -0.005em;
+}
+
+.label {
+  color: transparent;
+  background: linear-gradient(
+    90deg,
+    #a3a3a3 0%,
+    #a3a3a3 30%,
+    rgba(163, 163, 163, 0.45) 48%,
+    #a3a3a3 66%,
+    #a3a3a3 100%
+  );
+  background-size: 220% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2.25s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+}
+
+@keyframes shimmer {
+  0%,
+  18% {
+    background-position: 100% 0;
+  }
+
+  82%,
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label {
+    animation: none;
+    color: #a3a3a3;
+    -webkit-text-fill-color: currentColor;
+  }
+}

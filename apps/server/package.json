@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@cloudberry/contracts": "workspace:*",
+    "@composio/core": "0.18.1",
     "@supabase/supabase-js": "^2.115.0",
     "cors": "^2.8.6",
     "dotenv": "^17.2.2",
@@ -23,5 +24,8 @@
     "@types/express": "^5.0.3",
     "typescript": "^5"
   },
-  "packageManager": "bun@1.2.22"
+  "packageManager": "bun@1.2.22",
+  "engines": {
+    "node": ">=22.22.3"
+  }
 }

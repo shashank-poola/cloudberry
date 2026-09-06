@@ -54,6 +54,17 @@ function friendlyErrorMessage(code: string | null, fallback: string) {
       return "Your session has expired. Please sign in again."
     case "ORGANIZATION_REQUIRED":
       return "Your Cloudberry workspace is not ready yet."
+    case "INTEGRATION_OWNER_REQUIRED":
+      return "Only the workspace owner can manage integrations."
+    case "INTEGRATION_ALREADY_CONNECTED":
+      return "This integration is already connected."
+    case "INTEGRATION_NOT_CONFIGURED":
+      return "Cloudberry's integration service is not configured yet."
+    case "INTEGRATION_TRIGGER_SETUP_FAILED":
+    case "INTEGRATION_WEBHOOK_SETUP_FAILED":
+      return "The integration connected, but event delivery could not be configured."
+    case "INTEGRATION_REAUTHORIZATION_REQUIRED":
+      return "This integration needs to be authorized again."
     case "COMPUTER_NOT_PROVISIONED":
       return "Cloudberry's computer has not been provisioned yet."
     case "COMPUTER_UNAVAILABLE":
@@ -65,6 +76,7 @@ function friendlyErrorMessage(code: string | null, fallback: string) {
     case "PRIZED_TIMEOUT":
       return "Cloudberry's computer took too long to respond."
     case "KNOWLEDGE_NOT_CONFIGURED":
+      return "Cloudberry's company knowledge service is not configured yet. Configure it or use your connected Codex account."
     case "KNOWLEDGE_UNAVAILABLE":
     case "KNOWLEDGE_TIMEOUT":
       return "Cloudberry's company knowledge is temporarily unavailable."
@@ -74,6 +86,8 @@ function friendlyErrorMessage(code: string | null, fallback: string) {
       return "This chat has been archived and can no longer receive messages."
     case "CHAT_IN_PROGRESS":
       return "Cloudberry is still processing that message."
+    case "CHAT_STORAGE_FAILED":
+      return "Cloudberry could not save this chat. Apply the latest Supabase migrations and try again."
     case "HOSTED_CHAT_NOT_CONFIGURED":
       return "Cloudberry's hosted model service is not configured yet."
     case "HOSTED_CHAT_TIMEOUT":
@@ -81,15 +95,32 @@ function friendlyErrorMessage(code: string | null, fallback: string) {
     case "HOSTED_CHAT_INVALID_RESPONSE":
     case "HOSTED_CHAT_EMPTY_RESPONSE":
       return "Cloudberry's hosted model is temporarily unavailable."
-    case "CODEX_NOT_AUTHENTICATED":
-      return "Codex is not authenticated on the company computer yet."
-    case "CODEX_BUSY":
-      return "Codex is already working on another request. Try again shortly."
-    case "CODEX_START_FAILED":
-    case "CODEX_RUN_FAILED":
-      return "Codex could not start or complete the request."
-    case "SESSION_NOT_RUNNING":
-      return "That Codex session is no longer running."
+    case "CODEX_RUNTIME_NOT_CONFIGURED":
+      return "Cloudberry's official Codex runtime is not configured on the server."
+    case "CODEX_RUNTIME_SESSION_MISSING":
+      return "Reconnect Codex to start a new server-side Codex session."
+    case "CODEX_MODEL_UNAVAILABLE":
+      return "That Codex model is not available for the connected account."
+    case "CODEX_CHAT_TIMEOUT":
+    case "CODEX_RUNTIME_TIMEOUT":
+      return "Codex took too long to respond. Please try again."
+    case "CODEX_CHAT_INVALID_RESPONSE":
+    case "CODEX_CHAT_EMPTY_RESPONSE":
+      return "Codex returned an invalid response. Please try again."
+    case "CODEX_CHAT_UNAVAILABLE":
+    case "CODEX_RUNTIME_UNAVAILABLE":
+      return "Codex is temporarily unavailable. Please try again."
+    case "CODEX_AUTH_NOT_CONFIGURED":
+      return "Codex sign-in is not configured yet."
+    case "CODEX_AUTH_TIMEOUT":
+      return "Codex sign-in took too long. Please try again."
+    case "CODEX_AUTH_NOT_AUTHORIZED":
+      return "OpenAI could not authorize this Codex connection."
+    case "CODEX_AUTH_INVALID_RESPONSE":
+    case "CODEX_AUTH_UNAVAILABLE":
+    case "CODEX_AUTH_REQUEST_FAILED":
+    case "CODEX_CONNECTION_FAILED":
+      return "Codex could not complete the connection. Please try again."
     default:
       return fallback
   }
@@ -228,6 +259,7 @@ export async function apiRequest<T>(
 }
 
 export function getApiErrorMessage(error: unknown) {
+  if (typeof error === "string") return friendlyErrorMessage(error, error)
   if (error instanceof BrowserApiError) return error.message
   if (error instanceof Error && error.message) return error.message
   return "Something went wrong while contacting Cloudberry."

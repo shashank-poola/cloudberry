@@ -149,20 +149,23 @@ The ingestion pipeline is validated end to end: Supabase company events are
 claimed by the worker, ingested into Graphiti/FalkorDB, and returned through
 organization-scoped search with event provenance.
 
-The first Codex computer slice is also wired end to end:
+Codex is a standalone first-class integration, separate from the Prized
+computer resource. Users connect their OpenAI account through the Codex device
+authorization flow; Cloudberry stores only safe account metadata and never
+persists OpenAI access, refresh, or ID tokens.
 
 ```text
-Browser → authenticated API → Prized company computer → Codex CLI
-                         └→ organization-scoped knowledge search
+Browser → authenticated API → OpenAI Codex device authorization
+Browser → authenticated API → Composio OAuth (Slack, Linear, GitHub)
+Browser → authenticated API → Prized computer provisioning
 ```
 
-Cloudberry provisions or wakes one Prized computer per organization, adds
-bounded company context to each prompt, and returns sanitized Codex session
-events to the authenticated browser. The user authenticates Codex directly on
-the provided computer; Cloudberry never stores that credential.
+Prized computers can be provisioned independently for future Cloudberry
+workflows. Connecting Codex does not provision, configure, or authenticate a
+Prized computer, and provisioning a Prized computer does not connect Codex.
 
-External Slack, Linear, GitHub, and other connector ingestion is intentionally
-not enabled yet.
+Slack, Linear, and GitHub connector ingestion is available through configured
+Composio triggers; additional connectors remain outside the current scope.
 
 ## Tests
 

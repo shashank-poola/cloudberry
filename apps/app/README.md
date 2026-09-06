@@ -8,6 +8,8 @@ Email/password sign-up is not part of the application authentication flow.
 1. Create `.env.local` in this directory using the private deployment
    configuration.
 2. Set the hosted Supabase project URL and publishable key.
+3. Set `NEXT_PUBLIC_API_URL` to the Cloudberry API origin (defaults to
+   `http://localhost:8000` locally).
 4. Configure Google and GitHub in the Supabase dashboard.
 5. Add the app callback URL to the Supabase redirect allowlist:
    `http://localhost:3000/auth/callback`.

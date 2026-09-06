@@ -106,7 +106,15 @@ export function DashboardShell({
             onToggleSidebar={toggleSidebar}
             onOpenComputer={() => selectSection("computer")}
           />
-          <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+          <main
+            className={`min-h-0 flex-1 ${
+              activeSection === "new-chat"
+                ? "overflow-hidden"
+                : "overflow-y-auto"
+            }`}
+          >
+            {children}
+          </main>
         </div>
 
         <SearchCommand

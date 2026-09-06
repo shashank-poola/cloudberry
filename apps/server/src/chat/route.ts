@@ -6,8 +6,22 @@ import {
 } from "express"
 import { authMiddleware } from "../auth"
 import { getSupabaseAdminClient } from "../database/admin"
-import { createKnowledgeClient } from "../computer/knowledge"
-import { createGeneralComputeClient } from "../models/llm/client"
+import {
+  CodexRuntimeError,
+  createLazyCodexRuntime,
+  getCodexRuntime,
+  type CodexRuntimeLike,
+} from "../integrations/codex"
+import {
+  KnowledgeClientError,
+  createKnowledgeClient,
+  type KnowledgeClientLike,
+} from "../knowledge/client"
+import {
+  GeneralComputeClientError,
+  createGeneralComputeClient,
+  type GeneralComputeClientLike,
+} from "../models/llm/client"
 import { organizationContextMiddleware } from "../organizations/context"
 import {
   ChatService,
@@ -17,6 +31,7 @@ import {
 } from "./service"
 import {
   parseChatId,
+  parseChatSearchRequest,
   parseCreateChatMessageRequest,
   parseCreateChatRequest,
   RequestValidationError,
@@ -34,12 +49,23 @@ export type ChatRouterOptions = {
 const success = (data: unknown) => ({ success: true, data, error: null })
 const failure = (error: string) => ({ success: false, data: null, error })
 
+const createLazyGeneralComputeClient = (): GeneralComputeClientLike => ({
+  createChatCompletion: (request) =>
+    createGeneralComputeClient().createChatCompletion(request),
+})
+
+const createLazyKnowledgeClient = (): KnowledgeClientLike => ({
+  search: (organizationId, query, limit) =>
+    createKnowledgeClient().search(organizationId, query, limit),
+})
+
 const createService = (dependencies?: ChatServiceDependencies) =>
   new ChatService(
     dependencies ?? {
       database: getSupabaseAdminClient(),
-      generalCompute: createGeneralComputeClient(),
-      knowledge: createKnowledgeClient(),
+      generalCompute: createLazyGeneralComputeClient(),
+      knowledge: createLazyKnowledgeClient(),
+      codex: createLazyCodexRuntime(),
     }
   )
 
@@ -68,6 +94,18 @@ const sendError = (res: Response, error: unknown) => {
   if (error instanceof ChatServiceError) {
     return res.status(error.status).json(failure(error.code))
   }
+  if (error instanceof CodexRuntimeError) {
+    return res.status(error.status ?? 502).json(failure(error.code))
+  }
+  if (
+    error instanceof GeneralComputeClientError &&
+    error.kind === "configuration"
+  ) {
+    return res.status(503).json(failure("HOSTED_CHAT_NOT_CONFIGURED"))
+  }
+  if (error instanceof KnowledgeClientError && error.kind === "configuration") {
+    return res.status(503).json(failure("KNOWLEDGE_NOT_CONFIGURED"))
+  }
   if (error instanceof Error && error.message.includes("must be set")) {
     return res.status(503).json(failure("SERVER_NOT_CONFIGURED"))
   }
@@ -78,15 +116,57 @@ const sendError = (res: Response, error: unknown) => {
 export const createChatRouter = (options: ChatRouterOptions = {}): Router => {
   const router = Router()
   let service = options.service
+  let codexRuntime: CodexRuntimeLike | undefined = options.dependencies?.codex
   const getService = () => {
     if (!service) service = createService(options.dependencies)
     return service
+  }
+  const getCodexService = () => {
+    if (!codexRuntime) codexRuntime = getCodexRuntime()
+    return codexRuntime
   }
 
   router.use(
     options.auth ?? authMiddleware,
     options.organizationContext ?? organizationContextMiddleware
   )
+
+  router.get("/codex/models", async (req, res) => {
+    const organizationId = getOrganizationId(req, res)
+    if (!organizationId) return
+
+    try {
+      const models = await getCodexService().listModels(organizationId)
+      return res.status(200).json(success({ models }))
+    } catch (error) {
+      return sendError(res, error)
+    }
+  })
+
+  router.get("/", async (req, res) => {
+    const organizationId = getOrganizationId(req, res)
+    if (!organizationId) return
+
+    try {
+      const result = await getService().listChats(organizationId)
+      return res.status(200).json(success(result))
+    } catch (error) {
+      return sendError(res, error)
+    }
+  })
+
+  router.get("/search", async (req, res) => {
+    const organizationId = getOrganizationId(req, res)
+    if (!organizationId) return
+
+    try {
+      const request = parseChatSearchRequest(req.query)
+      const result = await getService().searchChats(organizationId, request.q)
+      return res.status(200).json(success(result))
+    } catch (error) {
+      return sendError(res, error)
+    }
+  })
 
   router.post("/", async (req, res) => {
     const organizationId = getOrganizationId(req, res)

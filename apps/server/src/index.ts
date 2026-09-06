@@ -7,7 +7,13 @@ import routes from "./routes"
 const app = express()
 const server = http.createServer(app)
 
-app.use(express.json({ limit: "64kb" }))
+// Composio signs the exact request bytes. Capture the webhook body before the
+// normal JSON parser runs so triggers.parse() can verify the signature.
+app.use(
+  "/api/v1/integrations/webhooks/composio",
+  express.raw({ type: "application/json", limit: "1mb" })
+)
+app.use(express.json({ limit: "256kb" }))
 
 const PORT = process.env.PORT || 8000
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:3000")

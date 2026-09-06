@@ -8,14 +8,18 @@ import {
   createChat,
   createChatMessage,
   getChat,
+  notifyChatListChanged,
   type ChatCitation,
   type ChatMessage as PersistedChatMessage,
   type HostedModelId,
 } from "@/api/chat/client"
-import { getPrizedComputer } from "@/api/computer/client"
+import { getCodexModels, type CodexModel } from "@/api/codex/client"
+import { CODEX_MODEL_PRESETS, type CodexModelId } from "@/api/codex/catalog"
+import { getIntegrations } from "@/api/integrations/client"
+import type { PromptModelSelection } from "./prompt-input"
 import { useDashboardProfile } from "@/components/dashboard/dashboard-profile-context"
 import { PromptInput } from "./prompt-input"
-import { ThinkingState } from "./thinking-state"
+import { ThinkingReasoning } from "./thinking-reasoning"
 import styles from "./chat-view.module.css"
 
 type ChatViewProps = {
@@ -34,6 +38,20 @@ type ChatMessage = {
 type RunPhase = "idle" | "loading" | "thinking" | "failed"
 
 const DEFAULT_MODEL: HostedModelId = "gpt-oss-120b"
+const DEFAULT_CODEX_MODEL: CodexModelId = CODEX_MODEL_PRESETS[0].id
+
+function getInitialCodexModel(): CodexModelId {
+  if (typeof window === "undefined") return DEFAULT_CODEX_MODEL
+
+  try {
+    const stored = window.localStorage.getItem("cloudberry.codex.model")
+    return CODEX_MODEL_PRESETS.some((option) => option.id === stored)
+      ? (stored as CodexModelId)
+      : DEFAULT_CODEX_MODEL
+  } catch {
+    return DEFAULT_CODEX_MODEL
+  }
+}
 
 function getFirstName(displayName: string) {
   return displayName.trim().split(/\s+/)[0] || "there"
@@ -62,7 +80,7 @@ function toChatMessage(message: PersistedChatMessage): ChatMessage {
     role: message.role,
     text: message.content,
     status: message.status,
-    error: message.error,
+    error: message.error ? getApiErrorMessage(message.error) : null,
     citations: message.citations,
   }
 }
@@ -81,14 +99,43 @@ export function ChatView({ chatId }: ChatViewProps) {
   const [greeting, setGreeting] = useState("Hello")
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [model, setModel] = useState<HostedModelId>(DEFAULT_MODEL)
+  const [codexModel, setCodexModel] =
+    useState<CodexModelId>(getInitialCodexModel)
+  const [codexModels, setCodexModels] = useState<CodexModel[]>([])
+  const [codexModelsLoading, setCodexModelsLoading] = useState(false)
   const [phase, setPhase] = useState<RunPhase>(chatId ? "loading" : "idle")
   const [error, setError] = useState<string | null>(null)
-  const [activePrompt, setActivePrompt] = useState<string | null>(null)
-  const [activeChatId, setActiveChatId] = useState<string | null>(chatId ?? null)
-  const [codexConnected, setCodexConnected] = useState(false)
+  const [activeChatId, setActiveChatId] = useState<string | null>(
+    chatId ?? null
+  )
+  const [resolvedChatId, setResolvedChatId] = useState<string | null>(null)
+  const [activeChatProvider, setActiveChatProvider] = useState<
+    "hosted" | "codex" | null
+  >(null)
+  const [codexConnectionState, setCodexConnectionState] = useState<
+    "loading" | "connected" | "disconnected"
+  >("loading")
+
   const controllerRef = useRef<AbortController | null>(null)
 
   const isBusy = phase === "loading" || phase === "thinking"
+  const isChatLoading = Boolean(chatId && resolvedChatId !== chatId)
+  const codexConnected = codexConnectionState === "connected"
+  const codexChatEnabled = codexConnected
+  const composerDisabled =
+    isBusy ||
+    isChatLoading ||
+    codexConnectionState === "loading" ||
+    (codexConnected && codexModelsLoading) ||
+    (activeChatProvider === "codex" && !codexConnected)
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("cloudberry.codex.model", codexModel)
+    } catch {
+      // Private browsing and restricted storage should not block chat.
+    }
+  }, [codexModel])
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -98,36 +145,111 @@ export function ChatView({ chatId }: ChatViewProps) {
   }, [])
 
   useEffect(() => {
-    if (!chatId) return
+    if (!chatId) {
+      const frame = window.requestAnimationFrame(() => {
+        setActiveChatId(null)
+        setResolvedChatId(null)
+        setActiveChatProvider(null)
+        setMessages([])
+        setError(null)
+        setPhase("idle")
+      })
+      return () => window.cancelAnimationFrame(frame)
+    }
 
     const controller = new AbortController()
-    void getChat(chatId, controller.signal)
-      .then((detail) => {
-        setModel(detail.chat.model)
-        setMessages(detail.messages.map(toChatMessage))
-        const failedMessage = detail.messages.find(
-          (message) => message.role === "assistant" && message.status === "failed"
-        )
-        setError(failedMessage?.error ?? null)
-        setPhase(failedMessage ? "failed" : "idle")
-      })
-      .catch((caughtError) => {
-        if (controller.signal.aborted) return
-        setError(getApiErrorMessage(caughtError))
-        setPhase("failed")
-      })
+    const frame = window.requestAnimationFrame(() => {
+      setActiveChatId(chatId)
+      setResolvedChatId(null)
+      setActiveChatProvider(null)
+      setMessages([])
+      setError(null)
+      setPhase("loading")
 
-    return () => controller.abort()
+      void getChat(chatId, controller.signal)
+        .then((detail) => {
+          if (controller.signal.aborted) return
+          setActiveChatId(detail.chat.id)
+          setActiveChatProvider(detail.chat.provider)
+          if (detail.chat.provider === "hosted") {
+            setModel(detail.chat.model as HostedModelId)
+          } else {
+            setCodexModel(detail.chat.model)
+          }
+          const loadedMessages = detail.messages.map(toChatMessage)
+          setMessages(loadedMessages)
+          const failedMessage = loadedMessages.find(
+            (message) =>
+              message.role === "assistant" && message.status === "failed"
+          )
+          setError(failedMessage?.error ?? null)
+          setPhase(failedMessage ? "failed" : "idle")
+          setResolvedChatId(chatId)
+        })
+        .catch((caughtError) => {
+          if (controller.signal.aborted) return
+          setError(getApiErrorMessage(caughtError))
+          setPhase("failed")
+          setResolvedChatId(chatId)
+        })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      controller.abort()
+    }
   }, [chatId])
 
   useEffect(() => {
     const controller = new AbortController()
-    void getPrizedComputer(controller.signal)
-      .then((computer) => setCodexConnected(computer?.codexConnected === true))
-      .catch(() => setCodexConnected(false))
+    void getIntegrations(controller.signal)
+      .then((integrations) => {
+        const connected = integrations.some(
+          (integration) =>
+            integration.provider === "codex" &&
+            integration.connected &&
+            integration.status === "active"
+        )
+        setCodexConnectionState(connected ? "connected" : "disconnected")
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setCodexConnectionState("disconnected")
+      })
 
     return () => controller.abort()
   }, [])
+
+  useEffect(() => {
+    if (!codexConnected) return
+
+    const controller = new AbortController()
+    const loadingFrame = window.requestAnimationFrame(() =>
+      setCodexModelsLoading(true)
+    )
+    void getCodexModels(controller.signal)
+      .then((models) => {
+        if (controller.signal.aborted) return
+        setCodexModels(models)
+        setCodexModel((current) =>
+          models.some((entry) => entry.id === current)
+            ? current
+            : (models[0]?.id ?? DEFAULT_CODEX_MODEL)
+        )
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setCodexModels([])
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCodexModelsLoading(false)
+      })
+
+    return () => {
+      window.cancelAnimationFrame(loadingFrame)
+      controller.abort()
+    }
+  }, [codexConnected])
 
   useEffect(
     () => () => {
@@ -136,16 +258,16 @@ export function ChatView({ chatId }: ChatViewProps) {
     []
   )
 
-  async function submitPrompt(prompt: string, requestedModel: HostedModelId) {
+  async function submitPrompt(prompt: string, selection: PromptModelSelection) {
     const cleanPrompt = prompt.trim()
     if (!cleanPrompt || isBusy) return
+
+    setError(null)
 
     const controller = new AbortController()
     controllerRef.current = controller
     const temporaryUserId = `user-${createClientMessageId()}`
     const temporaryAssistantId = `assistant-${createClientMessageId()}`
-    setActivePrompt(cleanPrompt)
-    setError(null)
     setPhase("thinking")
     setMessages((current) => [
       ...current,
@@ -167,15 +289,22 @@ export function ChatView({ chatId }: ChatViewProps) {
       },
     ])
 
+    let conversationId = chatId ?? activeChatId
     try {
-      let conversationId = activeChatId
-      if (!conversationId) {
-        const chat = await createChat(requestedModel, controller.signal)
+      if (!conversationId || activeChatProvider !== selection.provider) {
+        const chat = await createChat(selection, controller.signal)
         conversationId = chat.id
         setActiveChatId(chat.id)
-        setModel(chat.model)
+        setActiveChatProvider(chat.provider)
+        if (chat.provider === "hosted") {
+          setModel(chat.model as HostedModelId)
+        } else {
+          setCodexModel(chat.model)
+        }
+        notifyChatListChanged()
       }
 
+      if (!conversationId) throw new Error("Chat conversation was not created")
       const result = await createChatMessage(
         conversationId,
         cleanPrompt,
@@ -184,10 +313,16 @@ export function ChatView({ chatId }: ChatViewProps) {
       )
       if (controller.signal.aborted) return
 
-      setModel(result.chat.model)
+      setActiveChatProvider(result.chat.provider)
+      if (result.chat.provider === "hosted") {
+        setModel(result.chat.model as HostedModelId)
+      } else {
+        setCodexModel(result.chat.model)
+      }
       setMessages((current) =>
         current.map((message) => {
-          if (message.id === temporaryUserId) return toChatMessage(result.userMessage)
+          if (message.id === temporaryUserId)
+            return toChatMessage(result.userMessage)
           if (message.id === temporaryAssistantId) {
             return toChatMessage(result.assistantMessage)
           }
@@ -195,9 +330,10 @@ export function ChatView({ chatId }: ChatViewProps) {
         })
       )
       setPhase("idle")
-      setActivePrompt(null)
+      notifyChatListChanged()
 
-      if (!chatId) router.replace(`/c/${result.chat.id}`)
+      if (!chatId || result.chat.id !== chatId)
+        router.replace(`/c/${result.chat.id}`)
     } catch (caughtError) {
       if (controller.signal.aborted) return
       const message = getApiErrorMessage(caughtError)
@@ -210,27 +346,27 @@ export function ChatView({ chatId }: ChatViewProps) {
       )
       setError(message)
       setPhase("failed")
+      notifyChatListChanged()
+      if (conversationId && (!chatId || conversationId !== chatId)) {
+        router.replace(`/c/${conversationId}`)
+      }
     } finally {
       if (controllerRef.current === controller) controllerRef.current = null
     }
   }
 
-  function retry() {
-    if (activePrompt && !isBusy) void submitPrompt(activePrompt, model)
-  }
-
-  const showStatus = messages.length > 0 && (isBusy || error)
+  const showWelcome = !chatId && messages.length === 0
 
   return (
-    <section className="flex min-h-[calc(100dvh-3.5rem)] flex-1 flex-col">
+    <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <div
-        className={`mx-auto flex w-full max-w-4xl flex-1 flex-col px-5 sm:px-8 ${
-          messages.length
-            ? "min-h-0 py-8 sm:py-10"
-            : "-translate-y-8 items-center justify-center py-16 sm:-translate-y-12"
+        className={`relative flex h-full min-h-0 w-full flex-1 flex-col ${
+          showWelcome
+            ? "-translate-y-8 items-center justify-center py-16 sm:-translate-y-12"
+            : ""
         }`}
       >
-        {messages.length === 0 ? (
+        {showWelcome ? (
           <div className="mb-7 flex flex-col items-center text-center sm:mb-8">
             <Image
               src="/white_cloudberry_logo.png"
@@ -250,87 +386,121 @@ export function ChatView({ chatId }: ChatViewProps) {
             ) : null}
           </div>
         ) : (
-          <div className="w-full max-w-160" aria-live="polite">
-            <div className="space-y-5">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={
-                    message.role === "user"
-                      ? "ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-white/[0.1] px-4 py-3 text-sm leading-6 whitespace-pre-wrap text-zinc-100"
-                      : "max-w-[92%] text-sm leading-6 whitespace-pre-wrap text-zinc-300"
-                  }
-                >
-                  {message.role === "assistant" ? (
-                    <div className="flex gap-3">
-                      <Image
-                        src="/white_cloudberry_logo.png"
-                        alt=""
-                        width={22}
-                        height={22}
-                        className="mt-1 size-5 shrink-0 object-contain opacity-75"
-                      />
-                      <div className="min-w-0">
-                        {message.text ? (
-                          <p>{message.text}</p>
-                        ) : message.status === "running" ? (
-                          <ThinkingState />
-                        ) : (
-                          <p className="text-red-300/90">
-                            {message.error ?? "Cloudberry could not complete the request."}
-                          </p>
-                        )}
-                        {message.citations.length ? (
-                          <p className="mt-2 text-xs text-zinc-500">
-                            Grounded in {message.citations.length} company knowledge
-                            {message.citations.length === 1 ? " source" : " sources"}.
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : (
-                    message.text
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {showStatus ? (
+          <div
+            className={`${styles.transcript} min-h-0 w-full flex-1 overflow-y-auto overscroll-contain`}
+          >
+            <div className="mx-auto w-full max-w-4xl px-5 sm:px-8">
               <div
-                className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3.5 py-3"
-                role="status"
+                className="w-full max-w-160 py-8 pb-48 sm:py-10 sm:pb-52"
+                aria-live="polite"
               >
-                <div className="flex min-w-0 items-center gap-2 text-xs text-zinc-400">
-                  {isBusy ? <ThinkingState /> : <span>{error}</span>}
-                </div>
-                {phase === "failed" && activePrompt ? (
-                  <button
-                    type="button"
-                    onClick={retry}
-                    className="rounded-lg border border-white/[0.12] bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-zinc-300 transition-colors hover:bg-white/[0.1] hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                {isChatLoading ? (
+                  <div
+                    className="space-y-5 py-1"
+                    aria-label="Loading conversation"
                   >
-                    Retry
-                  </button>
-                ) : null}
+                    <div className="h-4 w-44 animate-pulse rounded bg-white/8" />
+                    <div className="h-4 w-[72%] animate-pulse rounded bg-white/6" />
+                    <div className="h-4 w-56 animate-pulse rounded bg-white/8" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-5">
+                      {messages.map((message) => (
+                        <div
+                          key={message.id}
+                          className={
+                            message.role === "user"
+                              ? "ml-auto w-fit max-w-[85%] rounded-xl rounded-br-sm bg-white/10 px-3.5 py-2 text-sm leading-5 wrap-break-word whitespace-pre-wrap text-zinc-100"
+                              : "max-w-[92%] text-sm leading-6 whitespace-pre-wrap text-zinc-300"
+                          }
+                        >
+                          {message.role === "assistant" ? (
+                            <div className="flex gap-3">
+                              <Image
+                                src="/white_cloudberry_logo.png"
+                                alt=""
+                                width={22}
+                                height={22}
+                                className="mt-1 size-5 shrink-0 object-contain opacity-75"
+                              />
+                              <div className="min-w-0">
+                                {message.text ? (
+                                  <p>{message.text}</p>
+                                ) : message.status === "running" ? (
+                                  <ThinkingReasoning />
+                                ) : (
+                                  <p className="text-red-300/90">
+                                    {message.error ??
+                                      "Cloudberry could not complete the request."}
+                                  </p>
+                                )}
+                                {message.citations.length ? (
+                                  <p className="mt-2 text-xs text-zinc-500">
+                                    Grounded in {message.citations.length}{" "}
+                                    company knowledge
+                                    {message.citations.length === 1
+                                      ? " source"
+                                      : " sources"}
+                                    .
+                                  </p>
+                                ) : null}
+                              </div>
+                            </div>
+                          ) : (
+                            message.text
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-            ) : null}
+            </div>
           </div>
         )}
 
+        {!showWelcome ? (
+          <div aria-hidden="true" className={styles.composerBackdrop} />
+        ) : null}
+
         <div
-          data-theme="dark"
-          className={`${styles.composer} w-full max-w-160 ${
-            messages.length ? "mt-auto pt-10 pb-2 sm:pt-14" : ""
-          }`}
+          className={
+            showWelcome
+              ? "w-full max-w-4xl shrink-0 px-5 sm:px-8"
+              : "absolute inset-x-0 bottom-0 z-10"
+          }
         >
-          <PromptInput
-            disabled={isBusy}
-            selectedModel={model}
-            onModelChange={setModel}
-            showCodexInstall={!codexConnected}
-            onInstallCodex={() => router.push("/computer")}
-            onSubmitAction={submitPrompt}
-          />
+          <div
+            className={
+              showWelcome ? "" : "mx-auto w-full max-w-4xl px-5 sm:px-8"
+            }
+          >
+            <div
+              data-theme="dark"
+              className={`${styles.composer} ${
+                messages.length ? styles.composerCompact : ""
+              } w-full max-w-160 ${showWelcome ? "mx-auto" : ""} ${
+                messages.length ? "pt-4 pb-8 sm:pt-6 sm:pb-10" : ""
+              }`}
+            >
+              <PromptInput
+                disabled={composerDisabled}
+                selectedModel={model}
+                onModelChangeAction={setModel}
+                codexConnected={codexConnected}
+                codexChatEnabled={codexChatEnabled}
+                codexModels={codexModels}
+                codexModelsLoading={codexModelsLoading}
+                selectedCodexModel={codexModel}
+                onCodexModelChangeAction={setCodexModel}
+                onConnectCodexAction={() =>
+                  router.push("/integrations?connect=codex")
+                }
+                onSubmitAction={submitPrompt}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </section>

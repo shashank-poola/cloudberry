@@ -59,6 +59,12 @@ export type GeneralComputeChatCompletion = {
   usage?: GeneralComputeUsage
 }
 
+export type GeneralComputeClientLike = {
+  createChatCompletion(
+    request: GeneralComputeChatCompletionRequest
+  ): Promise<GeneralComputeChatCompletion>
+}
+
 export type GeneralComputeClientOptions = {
   baseUrl?: string
   apiKey?: string
@@ -155,7 +161,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
 const parseMessages = (value: unknown): GeneralComputeChatMessage[] => {
-  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_CHAT_MESSAGES) {
+  if (
+    !Array.isArray(value) ||
+    value.length === 0 ||
+    value.length > MAX_CHAT_MESSAGES
+  ) {
     throw invalidRequest()
   }
 
@@ -226,7 +236,9 @@ const parseChatCompletionRequest = (
   return { model, messages, temperature, maxTokens }
 }
 
-const buildChatCompletionBody = (request: GeneralComputeChatCompletionRequest) => {
+const buildChatCompletionBody = (
+  request: GeneralComputeChatCompletionRequest
+) => {
   const validated = parseChatCompletionRequest(request)
   const body: Record<string, unknown> = {
     model: validated.model,
@@ -242,7 +254,9 @@ const buildChatCompletionBody = (request: GeneralComputeChatCompletionRequest) =
   }
 
   const serialized = JSON.stringify(body)
-  if (new TextEncoder().encode(serialized).byteLength > MAX_CHAT_REQUEST_BYTES) {
+  if (
+    new TextEncoder().encode(serialized).byteLength > MAX_CHAT_REQUEST_BYTES
+  ) {
     throw invalidRequest()
   }
 
@@ -357,7 +371,11 @@ const parseChatCompletion = (
   }
 
   const choices = value.choices
-  if (!Array.isArray(choices) || choices.length !== 1 || !isRecord(choices[0])) {
+  if (
+    !Array.isArray(choices) ||
+    choices.length !== 1 ||
+    !isRecord(choices[0])
+  ) {
     throw invalidResponse()
   }
 
@@ -394,7 +412,7 @@ export const getGeneralComputeBaseUrl = () =>
     process.env.GENERALCOMPUTE_BASE_URL ?? DEFAULT_GENERALCOMPUTE_BASE_URL
   )
 
-export class GeneralComputeClient {
+export class GeneralComputeClient implements GeneralComputeClientLike {
   readonly #baseUrl: string
   readonly #apiKey: string
   readonly #fetchImpl: FetchLike

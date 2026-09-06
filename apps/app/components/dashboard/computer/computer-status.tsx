@@ -14,7 +14,7 @@ type StatusState = "loading" | "ready" | "starting" | "missing" | "error"
 function statusLabel(computer: PrizedComputer | null, state: StatusState) {
   if (state === "loading") return "Checking"
   if (state === "starting") return "Starting"
-  if (state === "missing") return "Not provisioned"
+  if (state === "missing") return "Not set up"
   if (state === "error") return "Unavailable"
   if (!computer) return "Unavailable"
   return isPrizedComputerReady(computer) ? "Online" : computer.status
@@ -97,7 +97,7 @@ export function ComputerStatus() {
                   : "animate-pulse bg-amber-300"
             }`}
           />
-          <span>Prized · {status}</span>
+          <span>Computer · {status}</span>
         </div>
         <button
           type="button"
@@ -114,7 +114,7 @@ export function ComputerStatus() {
             disabled={isRefreshing}
             className="rounded-lg border border-white/[0.12] bg-white/[0.08] px-2.5 py-1.5 text-xs font-semibold text-zinc-200 transition-colors hover:bg-white/[0.14] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-60"
           >
-            Provision
+            Set up
           </button>
         )}
       </div>

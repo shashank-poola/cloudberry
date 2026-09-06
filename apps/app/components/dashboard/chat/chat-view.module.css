@@ -1,3 +1,39 @@
+.transcript {
+  color-scheme: dark;
+  scrollbar-color: rgba(161, 161, 170, 0.72) transparent;
+  scrollbar-width: thin;
+}
+
+.transcript::-webkit-scrollbar {
+  width: 10px;
+}
+
+.transcript::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.transcript::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(161, 161, 170, 0.72);
+  background-clip: content-box;
+}
+
+.transcript::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(212, 212, 216, 0.86);
+}
+
+.composerBackdrop {
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  height: 168px;
+  background: #0b0b0b;
+  pointer-events: none;
+}
+
 .composer > div {
   max-width: none;
 }
@@ -22,8 +58,19 @@
   font-size: 14px;
 }
 
+.composerCompact > div > div {
+  min-height: 118px;
+  padding: 14px 16px;
+}
+
 @media (max-width: 640px) {
   .composer > div > div {
     min-height: 120px;
+  }
+}
+
+@media (min-width: 640px) {
+  .composerBackdrop {
+    height: 182px;
   }
 }

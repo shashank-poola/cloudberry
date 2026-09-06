@@ -20,6 +20,11 @@ import {
   X,
 } from "lucide-react"
 import { type HostedModelId } from "@/api/chat/client"
+import {
+  CODEX_MODEL_PRESETS,
+  CODEX_REASONING_EFFORT,
+  type CodexModelId,
+} from "@/api/codex/catalog"
 import styles from "./prompt-input.module.css"
 
 const MODELS = [
@@ -44,9 +49,17 @@ const MODELS = [
 
 const PLUGINS = [
   { id: "slack", name: "Slack", logo: "/plugins/slack.webp" },
-  { id: "linear", name: "Linear", logo: "/plugins/linear.png" },
+  { id: "linear", name: "Linear", logo: "/plugins/linear.webp" },
   { id: "github", name: "GitHub", logo: "/plugins/github.png" },
 ]
+
+export type PromptModelSelection =
+  | { provider: "hosted"; model: HostedModelId }
+  | {
+      provider: "codex"
+      model: CodexModelId
+      reasoningEffort: typeof CODEX_REASONING_EFFORT
+    }
 
 function ModelIcon({ id }: { id: string }) {
   if (id === "codex") {
@@ -134,29 +147,41 @@ const escapeHtml = (str: string) =>
   )
 
 type Attachment = { id: number; name: string; kind: "image" | "file" }
+type CodexModelOption = { id: CodexModelId; name: string }
 
 type PromptInputProps = {
-  onSubmitAction?: (prompt: string, model: HostedModelId) => void
+  onSubmitAction?: (prompt: string, selection: PromptModelSelection) => void
   disabled?: boolean
   selectedModel?: HostedModelId
-  onModelChange?: (model: HostedModelId) => void
-  showCodexInstall?: boolean
-  onInstallCodex?: () => void
+  onModelChangeAction?: (model: HostedModelId) => void
+  codexConnected?: boolean
+  codexChatEnabled?: boolean
+  codexModels?: readonly CodexModelOption[]
+  codexModelsLoading?: boolean
+  selectedCodexModel?: CodexModelId
+  onCodexModelChangeAction?: (model: CodexModelId) => void
+  onConnectCodexAction?: () => void
 }
 
 export function PromptInput({
   onSubmitAction,
   disabled = false,
   selectedModel,
-  onModelChange,
-  showCodexInstall = true,
-  onInstallCodex,
+  onModelChangeAction,
+  codexConnected = false,
+  codexChatEnabled = codexConnected,
+  codexModels,
+  codexModelsLoading = false,
+  selectedCodexModel = CODEX_MODEL_PRESETS[0].id,
+  onCodexModelChangeAction,
+  onConnectCodexAction,
 }: PromptInputProps = {}) {
   // `value` mirrors the editor's plain text (skill pills contribute their
   // label), so it drives the empty/placeholder + send logic.
   const [value, setValue] = useState("")
   const [menuOpen, setMenuOpen] = useState(false)
   const [skillsOpen, setSkillsOpen] = useState(false)
+  const [codexOpen, setCodexOpen] = useState(false)
   const [hoveredModel, setHoveredModel] = useState<string | null>(null)
   const [localModel, setLocalModel] = useState<HostedModelId>(MODELS[0].id)
   const model = selectedModel ?? localModel
@@ -190,6 +215,8 @@ export function PromptInput({
 
   const hasText = value.trim().length > 0
   const sendActive = hasText && !disabled
+  const codexActive = codexConnected && codexChatEnabled
+  const codexOptions = codexModels?.length ? codexModels : CODEX_MODEL_PRESETS
   const slashResults = PLUGINS.filter((plugin) =>
     plugin.name.toLowerCase().includes(slashQuery.toLowerCase())
   )
@@ -246,6 +273,7 @@ export function PromptInput({
   const closeMenu = useCallback(() => {
     setMenuOpen(false)
     setSkillsOpen(false)
+    setCodexOpen(false)
     setHoveredModel(null)
   }, [])
 
@@ -520,7 +548,16 @@ export function PromptInput({
     const prompt = value.trim()
     if (!prompt) return
 
-    onSubmitAction?.(prompt, model)
+    onSubmitAction?.(
+      prompt,
+      codexActive
+        ? {
+            provider: "codex",
+            model: selectedCodexModel,
+            reasoningEffort: CODEX_REASONING_EFFORT,
+          }
+        : { provider: "hosted", model }
+    )
 
     const editor = editorRef.current
     if (editor) editor.innerHTML = ""
@@ -695,36 +732,8 @@ export function PromptInput({
               </span>
             </button>
 
-            {showCodexInstall ? (
-              <button
-                type="button"
-                className={styles.codexInstall}
-                disabled={disabled}
-                onClick={onInstallCodex}
-              >
-                Install Codex
-              </button>
-            ) : null}
-
             {menuOpen && (
               <div className={styles.menu} role="menu">
-                {showCodexInstall ? (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={styles.menuItem}
-                    onClick={() => {
-                      closeMenu()
-                      onInstallCodex?.()
-                    }}
-                  >
-                    <span className={styles.menuIcon}>
-                      <ModelIcon id="codex" />
-                    </span>
-                    <span className={styles.menuName}>Connect Codex</span>
-                  </button>
-                ) : null}
-                {showCodexInstall ? <div className={styles.menuDivider} /> : null}
                 <button
                   type="button"
                   role="menuitem"
@@ -798,45 +807,152 @@ export function PromptInput({
                     </div>
                   )}
                 </div>
-                <div className={styles.menuDivider} />
-                <div className={styles.menuLabel}>Model</div>
-                {MODELS.map((m) => (
-                  <div
-                    key={m.id}
-                    className={styles.menuSub}
-                    onMouseEnter={() => setHoveredModel(m.id)}
-                    onMouseLeave={() => setHoveredModel(null)}
-                  >
-                    <button
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={model === m.id}
-                      className={styles.menuItem}
-                      onClick={() => {
-                        if (selectedModel === undefined) setLocalModel(m.id)
-                        onModelChange?.(m.id)
+                <div
+                  className={styles.menuSub}
+                  onMouseEnter={() => {
+                    if (codexActive) setCodexOpen(true)
+                  }}
+                  onMouseLeave={() => setCodexOpen(false)}
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.menuItem}
+                    aria-haspopup={codexActive ? "menu" : undefined}
+                    aria-expanded={codexActive ? codexOpen : undefined}
+                    onClick={() => {
+                      if (!codexConnected) {
                         closeMenu()
-                      }}
-                    >
-                      <span className={styles.menuBrand}>
-                        <ModelIcon id={m.id} />
-                      </span>
-                      <span className={styles.menuName}>{m.name}</span>
-                      {model === m.id && (
+                        onConnectCodexAction?.()
+                        return
+                      }
+                      if (codexActive) setCodexOpen((open) => !open)
+                    }}
+                  >
+                    <span className={styles.pluginBrand}>
+                      <Image
+                        src="/plugins/codex.png"
+                        alt=""
+                        width={14}
+                        height={14}
+                        className="size-3.5 object-contain"
+                      />
+                    </span>
+                    <span className={styles.menuName}>Codex</span>
+                    {codexConnected ? (
+                      <>
                         <span className={styles.menuCheck}>
                           <Check size={14} />
                         </span>
-                      )}
-                    </button>
-                    {hoveredModel === m.id && (
-                      <div className={styles.menuPopover} role="tooltip">
-                        <div className={styles.popoverTitle}>{m.name}</div>
-                        <p className={styles.popoverDesc}>{m.desc}</p>
-                        <div className={styles.popoverMeta}>{m.context}</div>
-                      </div>
+                        {codexActive ? (
+                          <span className={styles.menuChevron}>
+                            <ChevronRight size={14} />
+                          </span>
+                        ) : null}
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-zinc-500">Connect</span>
                     )}
-                  </div>
-                ))}
+                  </button>
+                  {codexActive && codexOpen ? (
+                    <div
+                      className={`${styles.menuFlyout} ${styles.codexFlyout}`}
+                      role="menu"
+                      aria-label="Codex model presets"
+                    >
+                      <div className={styles.menuLabel}>
+                        Codex model presets
+                      </div>
+                      {codexOptions.map((codexModel) => (
+                        <button
+                          key={codexModel.id}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={selectedCodexModel === codexModel.id}
+                          className={styles.menuItem}
+                          onClick={() => {
+                            onCodexModelChangeAction?.(codexModel.id)
+                            closeMenu()
+                          }}
+                        >
+                          <span className={styles.pluginBrand}>
+                            <Image
+                              src="/plugins/codex.png"
+                              alt=""
+                              width={14}
+                              height={14}
+                              className="size-3.5 object-contain"
+                            />
+                          </span>
+                          <span className={styles.menuName}>
+                            {codexModel.name}
+                          </span>
+                          {selectedCodexModel === codexModel.id ? (
+                            <span className={styles.menuCheck}>
+                              <Check size={14} />
+                            </span>
+                          ) : null}
+                        </button>
+                      ))}
+                      <div className={styles.codexNote}>
+                        Reasoning effort: <strong>High</strong>
+                        <br />
+                        Model access follows your connected Codex account.
+                        {codexModelsLoading ? (
+                          <>
+                            <br />
+                            Loading live models…
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+                {!codexConnected ? (
+                  <>
+                    <div className={styles.menuDivider} />
+                    <div className={styles.menuLabel}>Model</div>
+                    {MODELS.map((m) => (
+                      <div
+                        key={m.id}
+                        className={styles.menuSub}
+                        onMouseEnter={() => setHoveredModel(m.id)}
+                        onMouseLeave={() => setHoveredModel(null)}
+                      >
+                        <button
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={model === m.id}
+                          className={styles.menuItem}
+                          onClick={() => {
+                            if (selectedModel === undefined) setLocalModel(m.id)
+                            onModelChangeAction?.(m.id)
+                            closeMenu()
+                          }}
+                        >
+                          <span className={styles.menuBrand}>
+                            <ModelIcon id={m.id} />
+                          </span>
+                          <span className={styles.menuName}>{m.name}</span>
+                          {model === m.id && (
+                            <span className={styles.menuCheck}>
+                              <Check size={14} />
+                            </span>
+                          )}
+                        </button>
+                        {hoveredModel === m.id && (
+                          <div className={styles.menuPopover} role="tooltip">
+                            <div className={styles.popoverTitle}>{m.name}</div>
+                            <p className={styles.popoverDesc}>{m.desc}</p>
+                            <div className={styles.popoverMeta}>
+                              {m.context}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                ) : null}
               </div>
             )}
           </div>

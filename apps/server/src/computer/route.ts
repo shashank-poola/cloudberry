@@ -8,26 +8,15 @@ import { authMiddleware } from "../auth"
 import { organizationContextMiddleware } from "../organizations/context"
 import { getSupabaseAdminClient } from "../database/admin"
 import { PrizedClientError, createPrizedClient } from "../prized/client"
-import { createKnowledgeClient, KnowledgeClientError } from "./knowledge"
 import {
   ComputerService,
   ComputerServiceError,
   type ComputerServiceDependencies,
   type ComputerServiceLike,
   type ComputerStatus,
-  type CodexInterruptResult,
-  type CodexSessionEventsResult,
-  type CodexSessionResult,
-  type CodexSessionStatusResult,
   type ProvisionResult,
 } from "./service"
-import {
-  parseAfter,
-  parseCodexSessionRequest,
-  parseProvisionRequest,
-  parseSessionId,
-  RequestValidationError,
-} from "./validation"
+import { parseProvisionRequest, RequestValidationError } from "./validation"
 
 export type { ComputerServiceLike } from "./service"
 
@@ -55,7 +44,6 @@ const createService = (dependencies?: ComputerServiceDependencies) =>
     dependencies ?? {
       database: getSupabaseAdminClient(),
       prized: createPrizedClient(),
-      knowledge: createKnowledgeClient(),
     }
   )
 
@@ -69,12 +57,6 @@ const sendError = (res: Response, error: unknown) => {
   }
 
   if (error instanceof PrizedClientError) {
-    if (error.providerCode === "prompt_in_progress") {
-      return res.status(409).json(failure("CODEX_BUSY"))
-    }
-    if (error.providerCode === "provider_not_signed_in") {
-      return res.status(409).json(failure("CODEX_NOT_AUTHENTICATED"))
-    }
     if (error.kind === "configuration") {
       return res.status(503).json(failure("PRIZED_NOT_CONFIGURED"))
     }
@@ -88,19 +70,6 @@ const sendError = (res: Response, error: unknown) => {
       return res.status(409).json(failure("PRIZED_CONFLICT"))
     }
     return res.status(502).json(failure("PRIZED_UNAVAILABLE"))
-  }
-
-  if (error instanceof KnowledgeClientError) {
-    if (error.kind === "configuration") {
-      return res.status(503).json(failure("KNOWLEDGE_NOT_CONFIGURED"))
-    }
-    if (error.kind === "timeout") {
-      return res.status(504).json(failure("KNOWLEDGE_TIMEOUT"))
-    }
-    if (error.kind === "invalid_response") {
-      return res.status(502).json(failure("KNOWLEDGE_INVALID_RESPONSE"))
-    }
-    return res.status(502).json(failure("KNOWLEDGE_UNAVAILABLE"))
   }
 
   if (error instanceof Error && error.message.includes("must be set")) {
@@ -158,70 +127,6 @@ export const createComputerRouter = (
         organizationId,
         parseProvisionRequest(req.body)
       )
-      return res.status(200).json(success(result))
-    } catch (error) {
-      return sendError(res, error)
-    }
-  })
-
-  router.post("/codex/sessions", async (req, res) => {
-    const organizationId = getOrganizationId(req, res)
-    if (!organizationId) return
-
-    try {
-      const result: CodexSessionResult = await getService().createCodexSession(
-        organizationId,
-        parseCodexSessionRequest(req.body)
-      )
-      return res.status(201).json(success(result))
-    } catch (error) {
-      return sendError(res, error)
-    }
-  })
-
-  router.get("/codex/sessions/:sessionId", async (req, res) => {
-    const organizationId = getOrganizationId(req, res)
-    if (!organizationId) return
-
-    try {
-      const result: CodexSessionStatusResult =
-        await getService().getCodexSession(
-          organizationId,
-          parseSessionId(req.params.sessionId)
-        )
-      return res.status(200).json(success(result))
-    } catch (error) {
-      return sendError(res, error)
-    }
-  })
-
-  router.get("/codex/sessions/:sessionId/events", async (req, res) => {
-    const organizationId = getOrganizationId(req, res)
-    if (!organizationId) return
-
-    try {
-      const result: CodexSessionEventsResult =
-        await getService().getCodexSessionEvents(
-          organizationId,
-          parseSessionId(req.params.sessionId),
-          parseAfter(req.query.after)
-        )
-      return res.status(200).json(success(result))
-    } catch (error) {
-      return sendError(res, error)
-    }
-  })
-
-  router.post("/codex/sessions/:sessionId/interrupt", async (req, res) => {
-    const organizationId = getOrganizationId(req, res)
-    if (!organizationId) return
-
-    try {
-      const result: CodexInterruptResult =
-        await getService().interruptCodexSession(
-          organizationId,
-          parseSessionId(req.params.sessionId)
-        )
       return res.status(200).json(success(result))
     } catch (error) {
       return sendError(res, error)

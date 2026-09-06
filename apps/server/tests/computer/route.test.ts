@@ -27,18 +27,6 @@ describe("computer routes", () => {
         receivedOrganizationId = organizationId
         throw new Error("not used")
       },
-      createCodexSession: async () => {
-        throw new Error("not used")
-      },
-      getCodexSession: async () => {
-        throw new Error("not used")
-      },
-      getCodexSessionEvents: async () => {
-        throw new Error("not used")
-      },
-      interruptCodexSession: async () => {
-        throw new Error("not used")
-      },
     }
     const app = express()
     app.use(
@@ -66,6 +54,12 @@ describe("computer routes", () => {
       expect(response.status).toBe(200)
       expect(payload.success).toBe(true)
       expect(String(receivedOrganizationId)).toBe("organization-from-auth")
+
+      const codexResponse = await fetch(
+        `http://127.0.0.1:${address.port}/computer/codex/sessions`,
+        { method: "POST" }
+      )
+      expect(codexResponse.status).toBe(404)
     } finally {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()))

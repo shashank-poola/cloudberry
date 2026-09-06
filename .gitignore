@@ -14,6 +14,7 @@ dist-ssr
 
 # env files, including environment templates
 .env*
+!apps/server/.env.example
 
 # turbo
 .turbo
