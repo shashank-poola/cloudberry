@@ -7,6 +7,7 @@ import {
   type PrizedInterruptResponse,
   type PrizedPromptEvent,
   type PrizedPromptRun,
+  type PrizedPromptStarted,
 } from "../prized/client"
 import { formatKnowledgeContext, buildCodexPrompt } from "./context"
 import { KnowledgeClient, KNOWLEDGE_QUERY_MAX_LENGTH } from "./knowledge"
@@ -603,16 +604,31 @@ export class ComputerService {
     )
     const referenceContext = formatKnowledgeContext(knowledge.results)
     const prompt = buildCodexPrompt(request.prompt, referenceContext)
-    const started = await this.dependencies.prized.postCodexPrompt(
-      me.edge.url,
-      computer.boxId,
-      {
-        prompt,
-        cwd: request.cwd,
-        continue: request.continue,
-        queue: false,
+    let started: PrizedPromptStarted
+    try {
+      started = await this.dependencies.prized.postCodexPrompt(
+        me.edge.url,
+        computer.boxId,
+        {
+          prompt,
+          cwd: request.cwd,
+          continue: request.continue,
+          queue: false,
+        }
+      )
+    } catch (error) {
+      if (
+        error instanceof PrizedClientError &&
+        error.providerCode === "provider_not_signed_in"
+      ) {
+        try {
+          await this.setCodexConnection(organizationId, computer, false)
+        } catch {
+          // Preserve the provider authentication error when state persistence fails.
+        }
       }
-    )
+      throw error
+    }
     const runId = started.run?.id
 
     if (!runId) {
@@ -646,6 +662,12 @@ export class ComputerService {
     } catch (error) {
       await this.interruptRemoteRun(me.edge.url, computer.boxId, runId)
       throw error
+    }
+
+    try {
+      await this.setCodexConnection(organizationId, computer, true)
+    } catch {
+      // A successful session remains usable if the optional UI state cannot persist.
     }
 
     return {
@@ -877,7 +899,7 @@ export class ComputerService {
       external_box_id: box.id,
       edge_url: edgeUrl,
       status: normalizedBoxState(box),
-      metadata: summarizeBoxMetadata(box),
+      metadata: { ...existing?.metadata, ...summarizeBoxMetadata(box) },
     }
 
     try {
@@ -897,6 +919,31 @@ export class ComputerService {
         throw new ComputerServiceError("COMPUTER_STORAGE_FAILED", 503)
       }
       return parseComputer(data, organizationId)
+    } catch (error) {
+      if (error instanceof ComputerServiceError) throw error
+      throw new ComputerServiceError("COMPUTER_STORAGE_FAILED", 503)
+    }
+  }
+
+  private async setCodexConnection(
+    organizationId: string,
+    computer: ComputerRecord,
+    connected: boolean
+  ) {
+    if (!computer.id) return
+
+    try {
+      const { error } = await this.dependencies.database
+        .from(COMPUTER_TABLE)
+        .update({
+          metadata: { ...computer.metadata, codex_connected: connected },
+        })
+        .eq("id", computer.id)
+        .eq("organization_id", organizationId)
+
+      if (error) {
+        throw new ComputerServiceError("COMPUTER_STORAGE_FAILED", 503)
+      }
     } catch (error) {
       if (error instanceof ComputerServiceError) throw error
       throw new ComputerServiceError("COMPUTER_STORAGE_FAILED", 503)

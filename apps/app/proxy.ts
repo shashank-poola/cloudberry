@@ -4,7 +4,16 @@ import { updateSupabaseSession } from "@/lib/supabase/proxy"
 export async function proxy(request: NextRequest) {
   const { response, user } = await updateSupabaseSession(request)
 
-  if (!user && request.nextUrl.pathname === "/") {
+  const pathname = request.nextUrl.pathname
+  const requiresDashboardAuth =
+    pathname === "/" ||
+    pathname.startsWith("/c/") ||
+    pathname === "/computer" ||
+    pathname === "/cloudpedia" ||
+    pathname === "/integrations" ||
+    pathname === "/settings"
+
+  if (!user && requiresDashboardAuth) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = "/signup"
     redirectUrl.search = ""

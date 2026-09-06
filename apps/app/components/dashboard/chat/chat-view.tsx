@@ -2,43 +2,38 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { getApiErrorMessage } from "@/api/client"
 import {
-  ensurePrizedComputer,
-  interruptCodexSession,
-  startCodexSession,
-  waitForCodexSession,
-  type CodexSession,
-} from "@/api/computer/client"
+  createChat,
+  createChatMessage,
+  getChat,
+  type ChatCitation,
+  type ChatMessage as PersistedChatMessage,
+  type HostedModelId,
+} from "@/api/chat/client"
+import { getPrizedComputer } from "@/api/computer/client"
+import { useDashboardProfile } from "@/components/dashboard/dashboard-profile-context"
 import { PromptInput } from "./prompt-input"
+import { ThinkingState } from "./thinking-state"
 import styles from "./chat-view.module.css"
 
 type ChatViewProps = {
-  displayName: string
+  chatId?: string
 }
 
 type ChatMessage = {
   id: string
   role: "user" | "assistant"
   text: string
+  status: PersistedChatMessage["status"]
+  error: string | null
+  citations: ChatCitation[]
 }
 
-type RunPhase =
-  | "idle"
-  | "preparing"
-  | "starting"
-  | "running"
-  | "cancelling"
-  | "succeeded"
-  | "failed"
-  | "cancelled"
+type RunPhase = "idle" | "loading" | "thinking" | "failed"
 
-type ActiveRun = {
-  id: number
-  controller: AbortController
-  sessionId: string | null
-  interruptRequested: boolean
-}
+const DEFAULT_MODEL: HostedModelId = "gpt-oss-120b"
 
 function getFirstName(displayName: string) {
   return displayName.trim().split(/\s+/)[0] || "there"
@@ -61,240 +56,178 @@ function getLocalGreeting() {
   return "Good evening"
 }
 
-function isAbortError(error: unknown) {
-  return error instanceof DOMException && error.name === "AbortError"
-}
-
-function sessionStatusLabel(session: CodexSession) {
-  switch (session.status) {
-    case "queued":
-      return "Codex is queued…"
-    case "running":
-      return "Codex is working…"
-    case "succeeded":
-      return "Codex finished"
-    case "failed":
-      return "Codex could not complete the request"
-    case "cancelled":
-      return "Codex session interrupted"
+function toChatMessage(message: PersistedChatMessage): ChatMessage {
+  return {
+    id: message.id,
+    role: message.role,
+    text: message.content,
+    status: message.status,
+    error: message.error,
+    citations: message.citations,
   }
 }
 
-function mergeAssistantText(
-  current: string,
-  incoming: string,
-  mode: "append" | "replace"
-) {
-  if (!incoming) return current
-  if (mode === "append") return current + incoming
-  if (!current) return incoming
-  if (current === incoming) return current
-  if (incoming.startsWith(current)) return incoming
-  if (current.startsWith(incoming)) return current
-  return `${current}\n\n${incoming}`
+function createClientMessageId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID()
+  }
+
+  return "00000000-0000-4000-8000-000000000000"
 }
 
-export function ChatView({ displayName }: ChatViewProps) {
+export function ChatView({ chatId }: ChatViewProps) {
+  const router = useRouter()
+  const { displayName } = useDashboardProfile()
   const [greeting, setGreeting] = useState("Hello")
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [phase, setPhase] = useState<RunPhase>("idle")
-  const [statusText, setStatusText] = useState("")
+  const [model, setModel] = useState<HostedModelId>(DEFAULT_MODEL)
+  const [phase, setPhase] = useState<RunPhase>(chatId ? "loading" : "idle")
   const [error, setError] = useState<string | null>(null)
   const [activePrompt, setActivePrompt] = useState<string | null>(null)
-  const runNumberRef = useRef(0)
-  const activeRunRef = useRef<ActiveRun | null>(null)
-  const assistantTextRef = useRef("")
+  const [activeChatId, setActiveChatId] = useState<string | null>(chatId ?? null)
+  const [codexConnected, setCodexConnected] = useState(false)
+  const controllerRef = useRef<AbortController | null>(null)
 
-  const isBusy =
-    phase === "preparing" ||
-    phase === "starting" ||
-    phase === "running" ||
-    phase === "cancelling"
+  const isBusy = phase === "loading" || phase === "thinking"
 
   useEffect(() => {
-    // Resolve after hydration so the greeting follows the viewer's timezone.
     const frame = window.requestAnimationFrame(() => {
       setGreeting(getLocalGreeting())
     })
-
     return () => window.cancelAnimationFrame(frame)
+  }, [])
+
+  useEffect(() => {
+    if (!chatId) return
+
+    const controller = new AbortController()
+    void getChat(chatId, controller.signal)
+      .then((detail) => {
+        setModel(detail.chat.model)
+        setMessages(detail.messages.map(toChatMessage))
+        const failedMessage = detail.messages.find(
+          (message) => message.role === "assistant" && message.status === "failed"
+        )
+        setError(failedMessage?.error ?? null)
+        setPhase(failedMessage ? "failed" : "idle")
+      })
+      .catch((caughtError) => {
+        if (controller.signal.aborted) return
+        setError(getApiErrorMessage(caughtError))
+        setPhase("failed")
+      })
+
+    return () => controller.abort()
+  }, [chatId])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void getPrizedComputer(controller.signal)
+      .then((computer) => setCodexConnected(computer?.codexConnected === true))
+      .catch(() => setCodexConnected(false))
+
+    return () => controller.abort()
   }, [])
 
   useEffect(
     () => () => {
-      activeRunRef.current?.controller.abort()
-      activeRunRef.current = null
+      controllerRef.current?.abort()
     },
     []
   )
 
-  function isCurrentRun(runId: number) {
-    return activeRunRef.current?.id === runId
-  }
-
-  function updateAssistantMessage(
-    messageId: string,
-    text: string,
-    mode: "append" | "replace"
-  ) {
-    assistantTextRef.current = mergeAssistantText(
-      assistantTextRef.current,
-      text,
-      mode
-    )
-    const nextText = assistantTextRef.current
-
-    setMessages((current) =>
-      current.map((message) =>
-        message.id === messageId ? { ...message, text: nextText } : message
-      )
-    )
-  }
-
-  async function submitPrompt(prompt: string) {
+  async function submitPrompt(prompt: string, requestedModel: HostedModelId) {
     const cleanPrompt = prompt.trim()
     if (!cleanPrompt || isBusy) return
 
-    const runId = runNumberRef.current + 1
-    runNumberRef.current = runId
-    const assistantMessageId = `assistant-${runId}`
-    const run: ActiveRun = {
-      controller: new AbortController(),
-      id: runId,
-      interruptRequested: false,
-      sessionId: null,
-    }
-
-    activeRunRef.current = run
-    assistantTextRef.current = ""
+    const controller = new AbortController()
+    controllerRef.current = controller
+    const temporaryUserId = `user-${createClientMessageId()}`
+    const temporaryAssistantId = `assistant-${createClientMessageId()}`
     setActivePrompt(cleanPrompt)
     setError(null)
-    setStatusText("Preparing Cloudberry's computer…")
-    setPhase("preparing")
+    setPhase("thinking")
     setMessages((current) => [
       ...current,
-      { id: `user-${runId}`, role: "user", text: cleanPrompt },
-      { id: assistantMessageId, role: "assistant", text: "" },
+      {
+        id: temporaryUserId,
+        role: "user",
+        text: cleanPrompt,
+        status: "succeeded",
+        error: null,
+        citations: [],
+      },
+      {
+        id: temporaryAssistantId,
+        role: "assistant",
+        text: "",
+        status: "running",
+        error: null,
+        citations: [],
+      },
     ])
 
     try {
-      await ensurePrizedComputer(run.controller.signal)
-      if (!isCurrentRun(runId)) return
+      let conversationId = activeChatId
+      if (!conversationId) {
+        const chat = await createChat(requestedModel, controller.signal)
+        conversationId = chat.id
+        setActiveChatId(chat.id)
+        setModel(chat.model)
+      }
 
-      setPhase("starting")
-      setStatusText("Starting Codex…")
-      const session = await startCodexSession(
+      const result = await createChatMessage(
+        conversationId,
         cleanPrompt,
-        run.controller.signal
+        createClientMessageId(),
+        controller.signal
       )
-      run.sessionId = session.id
-      if (!isCurrentRun(runId)) return
+      if (controller.signal.aborted) return
 
-      setStatusText(sessionStatusLabel(session))
-      setPhase(session.status === "running" ? "running" : "starting")
+      setModel(result.chat.model)
+      setMessages((current) =>
+        current.map((message) => {
+          if (message.id === temporaryUserId) return toChatMessage(result.userMessage)
+          if (message.id === temporaryAssistantId) {
+            return toChatMessage(result.assistantMessage)
+          }
+          return message
+        })
+      )
+      setPhase("idle")
+      setActivePrompt(null)
 
-      const completedSession = await waitForCodexSession(session.id, {
-        onAssistantText: (text, mode) => {
-          if (!isCurrentRun(runId)) return
-          updateAssistantMessage(assistantMessageId, text, mode)
-        },
-        onEvent: (label) => {
-          if (isCurrentRun(runId)) setStatusText(label)
-        },
-        onStatus: (nextSession) => {
-          if (!isCurrentRun(runId)) return
-          setPhase(nextSession.status === "running" ? "running" : "starting")
-          setStatusText(sessionStatusLabel(nextSession))
-          if (nextSession.error) setError(nextSession.error)
-        },
-        signal: run.controller.signal,
-      })
-
-      if (!isCurrentRun(runId)) return
-
-      if (completedSession.status === "succeeded") {
-        setPhase("succeeded")
-        setStatusText("Codex finished")
-        if (!assistantTextRef.current) {
-          updateAssistantMessage(
-            assistantMessageId,
-            "Codex completed without a text response.",
-            "replace"
-          )
-        }
-      } else if (completedSession.status === "cancelled") {
-        setPhase("cancelled")
-        setStatusText("Codex session interrupted")
-      } else {
-        setPhase("failed")
-        setStatusText("Codex could not complete the request")
-        setError(
-          completedSession.error ??
-            "Codex could not complete the request. You can retry the prompt."
+      if (!chatId) router.replace(`/c/${result.chat.id}`)
+    } catch (caughtError) {
+      if (controller.signal.aborted) return
+      const message = getApiErrorMessage(caughtError)
+      setMessages((current) =>
+        current.map((entry) =>
+          entry.id === temporaryAssistantId
+            ? { ...entry, status: "failed", error: message }
+            : entry
         )
-      }
-    } catch (caughtError) {
-      if (!isCurrentRun(runId)) return
-
-      if (run.interruptRequested || isAbortError(caughtError)) {
-        setPhase("cancelled")
-        setStatusText("Codex session interrupted")
-      } else {
-        setPhase("failed")
-        setStatusText("Something went wrong")
-        setError(getApiErrorMessage(caughtError))
-      }
+      )
+      setError(message)
+      setPhase("failed")
     } finally {
-      if (isCurrentRun(runId)) activeRunRef.current = null
-    }
-  }
-
-  async function interrupt() {
-    const run = activeRunRef.current
-    if (!run) return
-
-    run.interruptRequested = true
-    setPhase("cancelling")
-    setStatusText("Interrupting Codex…")
-    setError(null)
-
-    if (!run.sessionId) {
-      run.controller.abort()
-      activeRunRef.current = null
-      setPhase("cancelled")
-      setStatusText("Codex session interrupted")
-      return
-    }
-
-    try {
-      const sessionId = run.sessionId
-      await interruptCodexSession(sessionId, run.controller.signal)
-      if (!activeRunRef.current || activeRunRef.current.id !== run.id) return
-
-      run.controller.abort()
-      activeRunRef.current = null
-      setPhase("cancelled")
-      setStatusText("Codex session interrupted")
-    } catch (caughtError) {
-      if (!isCurrentRun(run.id)) return
-      run.interruptRequested = false
-      setPhase("running")
-      setStatusText("Codex is still working…")
-      setError(`Could not interrupt Codex: ${getApiErrorMessage(caughtError)}`)
+      if (controllerRef.current === controller) controllerRef.current = null
     }
   }
 
   function retry() {
-    if (activePrompt && !isBusy) void submitPrompt(activePrompt)
+    if (activePrompt && !isBusy) void submitPrompt(activePrompt, model)
   }
+
+  const showStatus = messages.length > 0 && (isBusy || error)
 
   return (
     <section className="flex min-h-[calc(100dvh-3.5rem)] flex-1 flex-col">
       <div
-        className={`mx-auto flex w-full max-w-4xl flex-1 flex-col px-5 py-16 sm:px-8 ${
+        className={`mx-auto flex w-full max-w-4xl flex-1 flex-col px-5 sm:px-8 ${
           messages.length
-            ? "justify-start pt-10 sm:pt-12"
-            : "-translate-y-14 items-center justify-center sm:-translate-y-16"
+            ? "min-h-0 py-8 sm:py-10"
+            : "-translate-y-8 items-center justify-center py-16 sm:-translate-y-12"
         }`}
       >
         {messages.length === 0 ? (
@@ -310,10 +243,15 @@ export function ChatView({ displayName }: ChatViewProps) {
             <h2 className="text-[clamp(2rem,4vw,3rem)] leading-none font-medium tracking-[-0.055em] text-zinc-100">
               {greeting}, {getFirstName(displayName)}!
             </h2>
+            {error ? (
+              <p className="mt-4 max-w-md text-sm leading-6 text-red-300/90">
+                {error}
+              </p>
+            ) : null}
           </div>
         ) : (
-          <div className="mb-8 w-full max-w-160">
-            <div className="space-y-5" aria-live="polite">
+          <div className="w-full max-w-160" aria-live="polite">
+            <div className="space-y-5">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -327,15 +265,28 @@ export function ChatView({ displayName }: ChatViewProps) {
                     <div className="flex gap-3">
                       <Image
                         src="/white_cloudberry_logo.png"
-                        alt="Codex"
+                        alt=""
                         width={22}
                         height={22}
                         className="mt-1 size-5 shrink-0 object-contain opacity-75"
                       />
-                      <span>
-                        {message.text ||
-                          (isBusy ? "Codex is working…" : "No response yet.")}
-                      </span>
+                      <div className="min-w-0">
+                        {message.text ? (
+                          <p>{message.text}</p>
+                        ) : message.status === "running" ? (
+                          <ThinkingState />
+                        ) : (
+                          <p className="text-red-300/90">
+                            {message.error ?? "Cloudberry could not complete the request."}
+                          </p>
+                        )}
+                        {message.citations.length ? (
+                          <p className="mt-2 text-xs text-zinc-500">
+                            Grounded in {message.citations.length} company knowledge
+                            {message.citations.length === 1 ? " source" : " sources"}.
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
                   ) : (
                     message.text
@@ -344,62 +295,42 @@ export function ChatView({ displayName }: ChatViewProps) {
               ))}
             </div>
 
-            <div className="mt-5 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3.5 py-3">
+            {showStatus ? (
               <div
-                className="flex flex-wrap items-center justify-between gap-3"
+                className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3.5 py-3"
                 role="status"
-                aria-live="polite"
               >
                 <div className="flex min-w-0 items-center gap-2 text-xs text-zinc-400">
-                  <span
-                    className={`size-1.5 shrink-0 rounded-full ${
-                      isBusy
-                        ? "animate-pulse bg-amber-300"
-                        : phase === "failed"
-                          ? "bg-red-400"
-                          : phase === "cancelled"
-                            ? "bg-zinc-500"
-                            : "bg-emerald-400"
-                    }`}
-                  />
-                  <span className="truncate">{statusText}</span>
+                  {isBusy ? <ThinkingState /> : <span>{error}</span>}
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {isBusy ? (
-                    <button
-                      type="button"
-                      onClick={() => void interrupt()}
-                      className="rounded-lg border border-white/[0.12] bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-zinc-300 transition-colors hover:bg-white/[0.1] hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    >
-                      Interrupt
-                    </button>
-                  ) : null}
-                  {(phase === "failed" || phase === "cancelled") &&
-                  activePrompt ? (
-                    <button
-                      type="button"
-                      onClick={retry}
-                      className="rounded-lg border border-white/[0.12] bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-zinc-300 transition-colors hover:bg-white/[0.1] hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    >
-                      Retry
-                    </button>
-                  ) : null}
-                </div>
+                {phase === "failed" && activePrompt ? (
+                  <button
+                    type="button"
+                    onClick={retry}
+                    className="rounded-lg border border-white/[0.12] bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-zinc-300 transition-colors hover:bg-white/[0.1] hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  >
+                    Retry
+                  </button>
+                ) : null}
               </div>
-              {error ? (
-                <p className="mt-2 text-xs leading-5 text-red-300/90">
-                  {error}
-                </p>
-              ) : null}
-            </div>
+            ) : null}
           </div>
         )}
 
         <div
           data-theme="dark"
-          className={`${styles.composer} w-full max-w-160`}
+          className={`${styles.composer} w-full max-w-160 ${
+            messages.length ? "mt-auto pt-10 pb-2 sm:pt-14" : ""
+          }`}
         >
-          <PromptInput disabled={isBusy} onSubmitAction={submitPrompt} />
+          <PromptInput
+            disabled={isBusy}
+            selectedModel={model}
+            onModelChange={setModel}
+            showCodexInstall={!codexConnected}
+            onInstallCodex={() => router.push("/computer")}
+            onSubmitAction={submitPrompt}
+          />
         </div>
       </div>
     </section>

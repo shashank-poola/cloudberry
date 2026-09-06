@@ -68,6 +68,19 @@ function friendlyErrorMessage(code: string | null, fallback: string) {
     case "KNOWLEDGE_UNAVAILABLE":
     case "KNOWLEDGE_TIMEOUT":
       return "Cloudberry's company knowledge is temporarily unavailable."
+    case "CHAT_NOT_FOUND":
+      return "This chat is unavailable in your current workspace."
+    case "CHAT_ARCHIVED":
+      return "This chat has been archived and can no longer receive messages."
+    case "CHAT_IN_PROGRESS":
+      return "Cloudberry is still processing that message."
+    case "HOSTED_CHAT_NOT_CONFIGURED":
+      return "Cloudberry's hosted model service is not configured yet."
+    case "HOSTED_CHAT_TIMEOUT":
+    case "HOSTED_CHAT_UNAVAILABLE":
+    case "HOSTED_CHAT_INVALID_RESPONSE":
+    case "HOSTED_CHAT_EMPTY_RESPONSE":
+      return "Cloudberry's hosted model is temporarily unavailable."
     case "CODEX_NOT_AUTHENTICATED":
       return "Codex is not authenticated on the company computer yet."
     case "CODEX_BUSY":

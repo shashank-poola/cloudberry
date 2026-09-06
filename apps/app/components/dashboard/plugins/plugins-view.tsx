@@ -1,4 +1,5 @@
 import Image from "next/image"
+import Link from "next/link"
 
 type Plugin = {
   name: string
@@ -59,7 +60,28 @@ export function PluginsView() {
           </p>
         </div>
 
-        <div className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <article className="mt-8 flex flex-col rounded-2xl border border-white/[0.14] bg-white/[0.04] p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+          <div className="flex items-start gap-4">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/[0.1] bg-white/[0.06] font-mono text-sm text-zinc-200">
+              {"</>"}
+            </span>
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-100">Codex</h3>
+              <p className="mt-1 max-w-2xl text-sm leading-5 text-zinc-500">
+                Set up your user-authenticated Codex CLI on Cloudberry&apos;s
+                company computer. Codex stays separate from the hosted models.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/computer"
+            className="mt-4 inline-flex shrink-0 items-center justify-center rounded-lg border border-white/[0.14] bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-zinc-200 transition-colors hover:bg-white/[0.1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:mt-0"
+          >
+            Set up Codex
+          </Link>
+        </article>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {plugins.map((plugin) => (
             <article
               key={plugin.name}

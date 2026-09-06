@@ -21,6 +21,7 @@ export type DashboardNavItem = {
   label: string
   headerLabel: string
   description: string
+  href: string | null
   icon: IconSvgElement
   visibleInSidebar: boolean
 }
@@ -31,6 +32,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "New Chat",
     headerLabel: "Chat",
     description: "Start a new conversation with Cloudberry.",
+    href: "/",
     icon: ChatEdit01Icon,
     visibleInSidebar: true,
   },
@@ -39,6 +41,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Search",
     headerLabel: "Search",
     description: "Find answers across your conversations and connected tools.",
+    href: null,
     icon: AiSearch02Icon,
     visibleInSidebar: true,
   },
@@ -47,6 +50,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Cloudpedia",
     headerLabel: "Cloudpedia",
     description: "Keep your team's living company knowledge in one place.",
+    href: "/cloudpedia",
     icon: GitbookIcon,
     visibleInSidebar: true,
   },
@@ -55,6 +59,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Plugins",
     headerLabel: "Plugins",
     description: "Connect the tools Cloudberry uses with your context.",
+    href: "/integrations",
     icon: HierarchySquare10Icon,
     visibleInSidebar: true,
   },
@@ -63,6 +68,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Computer",
     headerLabel: "Computer",
     description: "Use Cloudberry's always-on cloud computer.",
+    href: "/computer",
     icon: LaptopMinimalIcon,
     visibleInSidebar: true,
   },
@@ -71,6 +77,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Settings",
     headerLabel: "Settings",
     description: "Manage your Cloudberry account.",
+    href: "/settings",
     icon: Settings01Icon,
     visibleInSidebar: false,
   },
@@ -82,4 +89,13 @@ export function getDashboardNavItem(
   const item = dashboardNavItems.find((navItem) => navItem.id === section)
 
   return item ?? dashboardNavItems[0]
+}
+
+export function getDashboardSectionForPathname(pathname: string): DashboardSection {
+  if (pathname === "/" || pathname.startsWith("/c/")) return "new-chat"
+  if (pathname === "/computer") return "computer"
+  if (pathname === "/cloudpedia") return "cloudpedia"
+  if (pathname === "/integrations") return "integrations"
+  if (pathname === "/settings") return "settings"
+  return "new-chat"
 }

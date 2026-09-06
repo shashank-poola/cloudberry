@@ -19,16 +19,28 @@ import {
   Plus,
   X,
 } from "lucide-react"
+import { type HostedModelId } from "@/api/chat/client"
 import styles from "./prompt-input.module.css"
 
 const MODELS = [
   {
-    id: "codex",
-    name: "Codex CLI",
-    desc: "Runs on your company's Prized.dev computer with your Codex authentication.",
+    id: "gpt-oss-120b",
+    name: "gpt-oss-120b",
+    desc: "Open-source hosted model for grounded company knowledge answers.",
     context: "Cloudberry company context included",
   },
-]
+  {
+    id: "minimax-m2.7",
+    name: "minimax-m2.7",
+    desc: "Open-source hosted model for grounded company knowledge answers.",
+    context: "Cloudberry company context included",
+  },
+] as const satisfies readonly {
+  id: HostedModelId
+  name: string
+  desc: string
+  context: string
+}[]
 
 const PLUGINS = [
   { id: "slack", name: "Slack", logo: "/plugins/slack.webp" },
@@ -124,13 +136,21 @@ const escapeHtml = (str: string) =>
 type Attachment = { id: number; name: string; kind: "image" | "file" }
 
 type PromptInputProps = {
-  onSubmitAction?: (prompt: string) => void
+  onSubmitAction?: (prompt: string, model: HostedModelId) => void
   disabled?: boolean
+  selectedModel?: HostedModelId
+  onModelChange?: (model: HostedModelId) => void
+  showCodexInstall?: boolean
+  onInstallCodex?: () => void
 }
 
 export function PromptInput({
   onSubmitAction,
   disabled = false,
+  selectedModel,
+  onModelChange,
+  showCodexInstall = true,
+  onInstallCodex,
 }: PromptInputProps = {}) {
   // `value` mirrors the editor's plain text (skill pills contribute their
   // label), so it drives the empty/placeholder + send logic.
@@ -138,7 +158,8 @@ export function PromptInput({
   const [menuOpen, setMenuOpen] = useState(false)
   const [skillsOpen, setSkillsOpen] = useState(false)
   const [hoveredModel, setHoveredModel] = useState<string | null>(null)
-  const [model, setModel] = useState(MODELS[0].id)
+  const [localModel, setLocalModel] = useState<HostedModelId>(MODELS[0].id)
+  const model = selectedModel ?? localModel
   const [attachments, setAttachments] = useState<Attachment[]>([])
   // ids of chips currently playing their exit animation before removal
   const [exitingAtt, setExitingAtt] = useState<number[]>([])
@@ -499,7 +520,7 @@ export function PromptInput({
     const prompt = value.trim()
     if (!prompt) return
 
-    onSubmitAction?.(prompt)
+    onSubmitAction?.(prompt, model)
 
     const editor = editorRef.current
     if (editor) editor.innerHTML = ""
@@ -674,8 +695,36 @@ export function PromptInput({
               </span>
             </button>
 
+            {showCodexInstall ? (
+              <button
+                type="button"
+                className={styles.codexInstall}
+                disabled={disabled}
+                onClick={onInstallCodex}
+              >
+                Install Codex
+              </button>
+            ) : null}
+
             {menuOpen && (
               <div className={styles.menu} role="menu">
+                {showCodexInstall ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.menuItem}
+                    onClick={() => {
+                      closeMenu()
+                      onInstallCodex?.()
+                    }}
+                  >
+                    <span className={styles.menuIcon}>
+                      <ModelIcon id="codex" />
+                    </span>
+                    <span className={styles.menuName}>Connect Codex</span>
+                  </button>
+                ) : null}
+                {showCodexInstall ? <div className={styles.menuDivider} /> : null}
                 <button
                   type="button"
                   role="menuitem"
@@ -764,7 +813,8 @@ export function PromptInput({
                       aria-checked={model === m.id}
                       className={styles.menuItem}
                       onClick={() => {
-                        setModel(m.id)
+                        if (selectedModel === undefined) setLocalModel(m.id)
+                        onModelChange?.(m.id)
                         closeMenu()
                       }}
                     >

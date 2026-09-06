@@ -1,3 +1,5 @@
+"use client"
+
 import { useMemo, useState } from "react"
 import { AiSearch02Icon, GitbookIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"

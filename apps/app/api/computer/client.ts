@@ -14,6 +14,7 @@ export type PrizedComputer = {
   status: string
   provider: string | null
   boxId: string | null
+  codexConnected?: boolean
 }
 
 export type CodexSessionStatus =
@@ -109,11 +110,13 @@ function normaliseComputer(value: unknown): PrizedComputer | null {
   ])
   if (!isRecord(resource)) return null
 
+  const metadata = isRecord(resource.metadata) ? resource.metadata : {}
   return {
     id: firstString(resource, ["id", "computer_id", "computerId"]),
     provider: firstString(resource, ["provider"]),
     status: firstString(resource, ["status", "state"]) ?? "unknown",
     boxId: firstString(resource, ["box_id", "boxId", "external_box_id"]),
+    codexConnected: metadata.codex_connected === true,
   }
 }
 
