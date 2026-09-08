@@ -131,14 +131,14 @@ export const getTriggerDefinitions = (): Record<
 
   const definitions = emptyDefinitions()
 
-  // Slack's documented message trigger does not require provider-specific
-  // configuration, so a connected Slack account is useful by default.
+  // Receive human messages only. This avoids re-ingesting future Cloudberry
+  // replies as new conversation turns.
   definitions.slack = [
     {
       slug:
         process.env.COMPOSIO_SLACK_TRIGGER_SLUG?.trim() ||
         "SLACK_CHANNEL_MESSAGE_RECEIVED",
-      config: {},
+      config: { is_bot_message: false },
     },
   ]
 
@@ -189,6 +189,15 @@ export const getTriggerDefinitions = (): Record<
 
 export const getTriggerDefinitionsFor = (provider: IntegrationProvider) =>
   getTriggerDefinitions()[provider]
+
+export const getComposioAuthConfigsFor = (
+  provider: IntegrationProvider
+): Record<string, string> | undefined => {
+  if (provider !== "linear") return undefined
+
+  const authConfigId = process.env.COMPOSIO_LINEAR_AUTH_CONFIG_ID?.trim()
+  return authConfigId ? { linear: authConfigId } : undefined
+}
 
 export const providerName = (provider: IntegrationProvider) =>
   INTEGRATION_PROVIDER_LABELS[provider]

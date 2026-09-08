@@ -153,17 +153,35 @@ class MemoryDatabase {
   }
 }
 
-const createComposio = (parseResult: unknown = null) => {
+const createComposio = (
+  parseResult: unknown = null,
+  connectedToolkits: Array<{
+    slug: string
+    name: string
+    connection?: {
+      isActive: boolean
+      connectedAccount?: { id: string; status: string }
+    }
+  }> = []
+) => {
   const calls = {
     sessionUserId: null as string | null,
+    sessionConfig: null as {
+      toolkits?: string[]
+      authConfigs?: Record<string, string>
+      manageConnections?: boolean
+      sandbox?: { enable: boolean }
+    } | null,
     authorizedToolkit: null as string | null,
+    toolkitStatusRequests: 0,
     webhookSubscription: 0,
   }
 
   const client: ComposioClientLike = {
     sessions: {
-      create: async (userId) => {
+      create: async (userId, config) => {
         calls.sessionUserId = userId
+        calls.sessionConfig = config ?? null
         return {
           authorize: async (toolkit) => {
             calls.authorizedToolkit = toolkit
@@ -171,6 +189,10 @@ const createComposio = (parseResult: unknown = null) => {
               id: "ca_github",
               redirectUrl: "https://connect.composio.dev/link/test",
             }
+          },
+          toolkits: async () => {
+            calls.toolkitStatusRequests += 1
+            return { items: connectedToolkits }
           },
         }
       },
@@ -278,6 +300,50 @@ const withEnvironment = async (
 }
 
 describe("integration service", () => {
+  test("reconciles a connected Composio account missing locally", async () => {
+    const organizationId = "11111111-1111-4111-8111-111111111111"
+    const database = new MemoryDatabase()
+    const { calls, client } = createComposio(null, [
+      {
+        slug: "SLACK",
+        name: "Slack",
+        connection: {
+          isActive: true,
+          connectedAccount: { id: "ca_slack", status: "ACTIVE" },
+        },
+      },
+    ])
+    const service = new IntegrationService({
+      database: database as unknown as SupabaseClient,
+      composio: client,
+    })
+
+    const result = await service.list(organizationId)
+
+    expect(calls.sessionUserId).toBe(organizationId)
+    expect(calls.toolkitStatusRequests).toBe(1)
+    expect(result.integrations.find(({ provider }) => provider === "slack"))
+      .toMatchObject({
+        provider: "slack",
+        status: "active",
+        connected: true,
+        trigger_status: "not_configured",
+      })
+    expect(database.tables.integrations).toMatchObject([
+      {
+        organization_id: organizationId,
+        provider: "slack",
+        external_account_id: "ca_slack",
+        status: "active",
+        metadata: {
+          composio_user_id: organizationId,
+          composio_connected_account_id: "ca_slack",
+          trigger_status: "not_configured",
+        },
+      },
+    ])
+  })
+
   test("creates an organization-scoped Composio Connect Link", async () => {
     await withEnvironment(
       {
@@ -320,6 +386,42 @@ describe("integration service", () => {
             status: "pending",
           },
         ])
+      }
+    )
+  })
+
+  test("uses the configured custom OAuth auth config for Linear", async () => {
+    await withEnvironment(
+      {
+        COMPOSIO_CALLBACK_URL:
+          "http://localhost:8000/api/v1/integrations/composio/callback",
+        COMPOSIO_LINEAR_AUTH_CONFIG_ID: "ac_linear_custom_oauth",
+      },
+      async () => {
+        const database = new MemoryDatabase()
+        const { calls, client } = createComposio()
+        const service = new IntegrationService({
+          database: database as unknown as SupabaseClient,
+          composio: client,
+          createState: () => "1234567890123456",
+        })
+
+        const result = await service.startConnection(
+          "11111111-1111-4111-8111-111111111111",
+          "owner-id",
+          "linear"
+        )
+
+        expect(result).toMatchObject({
+          provider: "linear",
+          redirect_url: "https://connect.composio.dev/link/test",
+        })
+        expect(calls.sessionConfig).toMatchObject({
+          toolkits: ["linear"],
+          authConfigs: { linear: "ac_linear_custom_oauth" },
+          manageConnections: false,
+          sandbox: { enable: false },
+        })
       }
     )
   })
@@ -531,6 +633,90 @@ describe("integration service", () => {
       status: "failed",
       reason: "CODEX_AUTH_NOT_AUTHORIZED",
     })
+  })
+
+  test("records normalized Slack conversation context on inbound events", async () => {
+    await withEnvironment(
+      {
+        COMPOSIO_WEBHOOK_SECRET: "test-webhook-secret",
+        COMPOSIO_TRIGGER_DEFINITIONS: undefined,
+      },
+      async () => {
+        const database = new MemoryDatabase()
+        const { client } = createComposio({
+          version: "V3",
+          rawPayload: {
+            id: "msg_123",
+            type: "composio.trigger.message",
+            metadata: {
+              trigger_id: "ti_slack",
+              trigger_slug: "SLACK_CHANNEL_MESSAGE_RECEIVED",
+              connected_account_id: "ca_slack",
+              user_id: "11111111-1111-4111-8111-111111111111",
+            },
+          },
+          payload: {
+            id: "ti_slack",
+            triggerSlug: "SLACK_CHANNEL_MESSAGE_RECEIVED",
+            toolkitSlug: "SLACK",
+            userId: "11111111-1111-4111-8111-111111111111",
+            payload: {
+              channel: "C123",
+              ts: "1710000001.000200",
+              thread_ts: "1710000000.000100",
+              user: "U123",
+              text: "What did we decide about Supabase?",
+            },
+            metadata: {
+              connectedAccount: { id: "ca_slack" },
+            },
+          },
+        })
+        database.tables.integrations.push({
+          id: "integration-id",
+          organization_id: "11111111-1111-4111-8111-111111111111",
+          provider: "slack",
+          external_account_id: "ca_slack",
+          status: "active",
+          metadata: {
+            composio_user_id: "11111111-1111-4111-8111-111111111111",
+            trigger_status: "active",
+            trigger_ids: ["ti_slack"],
+          },
+          updated_at: "2026-09-06T12:00:00.000Z",
+        })
+        const service = new IntegrationService({
+          database: database as unknown as SupabaseClient,
+          composio: client,
+        })
+
+        await expect(
+          service.handleWebhook(Buffer.from('{"signed":"payload"}'), {})
+        ).resolves.toEqual({ kind: "event", inserted: true })
+
+        expect(database.tables.company_events[0]).toMatchObject({
+          metadata: {
+            channel_conversation: {
+              provider: "slack",
+              conversation_id: "C123",
+              message_id: "1710000001.000200",
+              thread_id: "1710000000.000100",
+              sender_id: "U123",
+              reply_mode: "thread",
+            },
+          },
+          normalized_payload: {
+            metadata: {
+              channel_conversation: {
+                provider: "slack",
+                conversation_id: "C123",
+                thread_id: "1710000000.000100",
+              },
+            },
+          },
+        })
+      }
+    )
   })
 
   test("normalizes a signed trigger event and deduplicates redelivery", async () => {

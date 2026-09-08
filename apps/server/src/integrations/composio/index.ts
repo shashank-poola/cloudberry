@@ -2,6 +2,7 @@ export { getComposioClient, setComposioClientForTests } from "./factory"
 export { createComposioClient } from "./client"
 export {
   getApplicationUrl,
+  getComposioAuthConfigsFor,
   getComposioApiKey,
   getComposioCallbackUrl,
   getComposioWebhookSecret,

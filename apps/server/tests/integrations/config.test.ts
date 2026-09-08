@@ -43,7 +43,10 @@ describe("Composio trigger defaults", () => {
     await withEnvironment({}, async () => {
       const definitions = getTriggerDefinitions()
       expect(definitions.slack).toEqual([
-        { slug: "SLACK_CHANNEL_MESSAGE_RECEIVED", config: {} },
+        {
+          slug: "SLACK_CHANNEL_MESSAGE_RECEIVED",
+          config: { is_bot_message: false },
+        },
       ])
       expect(definitions.linear).toEqual([])
     })

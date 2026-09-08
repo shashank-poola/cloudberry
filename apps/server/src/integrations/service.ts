@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { ConversationEngine } from "../channels"
 import {
   getComposioClient,
+  getComposioAuthConfigsFor,
   getComposioCallbackUrl,
   getComposioWebhookSecret,
   getComposioWebhookUrl,
@@ -84,6 +86,7 @@ type ConnectionAttemptRow = {
 export type IntegrationServiceDependencies = {
   database: SupabaseClient
   composio?: ComposioClientLike
+  conversationEngine?: ConversationEngine
   codex?: CodexAuthClientLike
   codexRuntime?: CodexRuntimeLike
   now?: () => Date
@@ -316,7 +319,12 @@ const providerFromPayload = (
 }
 
 export class IntegrationService implements IntegrationServiceLike {
-  constructor(readonly dependencies: IntegrationServiceDependencies) {}
+  private readonly conversationEngine: ConversationEngine
+
+  constructor(readonly dependencies: IntegrationServiceDependencies) {
+    this.conversationEngine =
+      dependencies.conversationEngine ?? new ConversationEngine()
+  }
 
   private now() {
     return this.dependencies.now?.() ?? new Date()
@@ -441,7 +449,65 @@ export class IntegrationService implements IntegrationServiceLike {
     }
   }
 
+  private async reconcileComposioConnections(organizationId: string) {
+    try {
+      const session = await this.composio().sessions.create(organizationId, {
+        toolkits: ["slack", "linear", "github"],
+        manageConnections: false,
+        sandbox: { enable: false },
+      })
+      const connectedToolkits = await session.toolkits({ isConnected: true })
+
+      for (const toolkit of connectedToolkits.items) {
+        const provider = providerFromPayload(toolkit.slug)
+        const connectedAccountId = stringValue(
+          toolkit.connection?.connectedAccount?.id
+        )
+        if (
+          !provider ||
+          provider === "codex" ||
+          !toolkit.connection?.isActive ||
+          !connectedAccountId
+        ) {
+          continue
+        }
+
+        // A locally disabled or failed integration is intentional state. Do not
+        // overwrite it simply because Composio still has an account.
+        const existing = await this.findOrganizationIntegration(
+          organizationId,
+          provider
+        )
+        if (existing) continue
+
+        // A Composio account must never be adopted by a second organization.
+        const assigned = await this.findExternalIntegration(connectedAccountId)
+        if (assigned) continue
+
+        await this.upsertIntegration(
+          organizationId,
+          provider,
+          connectedAccountId,
+          "active",
+          {
+            composio_user_id: organizationId,
+            composio_connected_account_id: connectedAccountId,
+            trigger_status: "not_configured",
+            trigger_ids: [],
+            trigger_slugs: [],
+            last_error: null,
+          }
+        )
+      }
+    } catch {
+      // Listing persisted integrations must remain available if Composio is
+      // unavailable or the dashboard account belongs to a different identity.
+    }
+  }
+
   async list(organizationId: string): Promise<IntegrationListResult> {
+    await this.reconcileComposioConnections(organizationId)
+
     const { data, error } = await this.dependencies.database
       .from(INTEGRATIONS_TABLE)
       .select(
@@ -733,8 +799,10 @@ export class IntegrationService implements IntegrationServiceLike {
       }
 
       const callbackUrl = getComposioCallbackUrl(state)
+      const authConfigs = getComposioAuthConfigsFor(provider)
       const session = await this.composio().sessions.create(organizationId, {
         toolkits: [provider],
+        ...(authConfigs ? { authConfigs } : {}),
         manageConnections: false,
         sandbox: { enable: false },
       })
@@ -1468,7 +1536,7 @@ export class IntegrationService implements IntegrationServiceLike {
     const messageId =
       firstString(rawPayload, ["id", "log_id", "logId"], 512) ||
       firstString(normalizedPayload, ["id"], 512)
-    const event = withOrganizationScope(
+    let event = withOrganizationScope(
       normalizeComposioTrigger({
         provider,
         triggerSlug,
@@ -1482,6 +1550,30 @@ export class IntegrationService implements IntegrationServiceLike {
       }),
       integration.organization_id
     )
+
+    try {
+      const conversation = this.conversationEngine.route(event, payload)
+      if (conversation.kind === "accepted") {
+        const turn = conversation.turn
+        event = {
+          ...event,
+          metadata: {
+            ...event.metadata,
+            channel_conversation: {
+              provider: turn.provider,
+              conversation_id: turn.conversationId,
+              message_id: turn.messageId,
+              thread_id: turn.threadId,
+              sender_id: turn.senderId,
+              reply_mode: turn.replyMode,
+            },
+          },
+        }
+      }
+    } catch {
+      // Conversation routing enriches events but must not block knowledge
+      // ingestion when a future channel adapter fails.
+    }
 
     const { error } = await this.dependencies.database
       .from(COMPANY_EVENTS_TABLE)

@@ -3,11 +3,26 @@ export type ComposioConnectionRequestLike = {
   redirectUrl: string | null
 }
 
+export type ComposioConnectedToolkitLike = {
+  slug: string
+  name: string
+  connection?: {
+    isActive: boolean
+    connectedAccount?: {
+      id: string
+      status: string
+    }
+  }
+}
+
 export type ComposioSessionLike = {
   authorize(
     toolkit: string,
     options?: { callbackUrl?: string }
   ): Promise<ComposioConnectionRequestLike>
+  toolkits(options?: { isConnected?: boolean }): Promise<{
+    items: ComposioConnectedToolkitLike[]
+  }>
 }
 
 export type ComposioClientLike = {
@@ -16,6 +31,7 @@ export type ComposioClientLike = {
       userId: string,
       config?: {
         toolkits?: string[]
+        authConfigs?: Record<string, string>
         manageConnections?: boolean
         sandbox?: { enable: boolean }
       }
