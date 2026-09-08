@@ -31,7 +31,7 @@ uses its own internal bearer token.
 - `apps/worker` — Supabase job worker and deterministic seed command
 - `packages/contracts` — shared event and knowledge contracts
 - `packages/ui` — shared React UI components
-- `services/knowledge` — private FastAPI/Graphiti service
+- `knowledge_base` — private FastAPI/Graphiti service
 - `supabase` — database migrations and hosted Supabase setup notes
 
 ## Prerequisites
@@ -46,7 +46,7 @@ uses its own internal bearer token.
 
 ```powershell
 bun install
-python -m pip install -e ".\\services\\knowledge[test]"
+python -m pip install -e ".\\knowledge_base[test]"
 ```
 
 Create the environment files locally from your private deployment
@@ -56,7 +56,7 @@ Use these local file locations:
 - `apps/app/.env.local`
 - `apps/server/.env`
 - `apps/worker/.env`
-- `services/knowledge/.env`
+- `knowledge_base/.env
 - `supabase/.env`
 
 Never commit environment files, service-role keys, database passwords, or
@@ -87,7 +87,7 @@ Start the private knowledge service in one terminal:
 
 ```powershell
 python -m uvicorn app.main:app `
-  --app-dir .\\services\\knowledge `
+  --app-dir .\\knowledge_base `
   --host 0.0.0.0 `
   --port 8001
 ```
@@ -130,7 +130,7 @@ bun run build
 Run the knowledge-service tests:
 
 ```powershell
-cd services/knowledge
+cd knowledge_base
 python -m pytest tests -q
 python -m compileall -q app tests
 ```

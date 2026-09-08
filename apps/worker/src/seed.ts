@@ -14,7 +14,7 @@ const fixtureNames = [
 
 const fixtureDirectory = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  "../../../services/knowledge/tests/fixtures"
+  "../../../knowledge_base/tests/fixtures"
 )
 
 const getSeedOrganizationId = () => {

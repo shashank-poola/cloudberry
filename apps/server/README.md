@@ -76,7 +76,7 @@ not durable.
 Hosted chat generation also requires `GENERALCOMPUTE_API_KEY`. Company
 knowledge requires the `KNOWLEDGE_SERVICE_URL`/`KNOWLEDGE_SERVICE_TOKEN` pair.
 For local development, use `http://127.0.0.1:8001` and one random shared token
-in both `apps/server/.env` and `services/knowledge/.env`. The API returns a
+in both `apps/server/.env` and `knowledge_base/.env`. The API returns a
 specific configuration error when the hosted or knowledge service is
 unavailable; Codex can still answer without knowledge when that optional
 service is down.
