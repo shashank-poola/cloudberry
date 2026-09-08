@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AiSearch02Icon, FilterIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
+import {
+  IconAdjustmentsHorizontal,
+  IconSearch,
+} from "@tabler/icons-react"
 import { getApiErrorMessage } from "@/api/client"
 import { searchChats, type ChatSearchResult } from "@/api/chat/client"
 
@@ -151,11 +153,10 @@ export function SearchCommand({ isOpen, onClose }: SearchCommandProps) {
         className="w-full max-w-xl overflow-hidden rounded-lg border border-white/10 bg-[#181818] shadow-2xl shadow-black/40"
       >
         <div className="flex h-14 items-center gap-3 border-b border-white/8 px-4">
-          <HugeiconsIcon
-            icon={AiSearch02Icon}
+          <IconSearch
             size={20}
-            color="currentColor"
-            strokeWidth={1.7}
+            stroke={2}
+            aria-hidden="true"
             className="shrink-0 text-zinc-400"
           />
           <input
@@ -173,11 +174,10 @@ export function SearchCommand({ isOpen, onClose }: SearchCommandProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2 border-b border-white/8 px-4 py-3">
           <span className="mr-1 flex items-center gap-1.5 text-xs text-zinc-500">
-            <HugeiconsIcon
-              icon={FilterIcon}
+            <IconAdjustmentsHorizontal
               size={15}
-              color="currentColor"
-              strokeWidth={1.5}
+              stroke={2}
+              aria-hidden="true"
             />
             Filter
           </span>

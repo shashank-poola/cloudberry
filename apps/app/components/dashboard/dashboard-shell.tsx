@@ -14,9 +14,26 @@ import {
 } from "./dashboard-profile-context"
 import { SearchCommand } from "./search/search-command"
 import { DashboardSidebar } from "./dashboard-sidebar"
+import {
+  CHAT_LIST_CHANGED_EVENT,
+  getChat,
+} from "@/api/chat/client"
 
 type DashboardShellProps = DashboardProfile & {
   children: React.ReactNode
+}
+
+function getChatIdFromPathname(pathname: string) {
+  if (!pathname.startsWith("/c/")) return null
+
+  const value = pathname.slice(3).split("/")[0]
+  if (!value) return null
+
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
 }
 
 export function DashboardShell({
@@ -31,8 +48,46 @@ export function DashboardShell({
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [chatTitle, setChatTitle] = useState<string | null>(null)
   const activeSection = getDashboardSectionForPathname(pathname)
   const activeItem = getDashboardNavItem(activeSection)
+
+  useEffect(() => {
+    const chatId = getChatIdFromPathname(pathname)
+    if (!chatId) {
+      const frame = window.requestAnimationFrame(() => setChatTitle(null))
+      return () => window.cancelAnimationFrame(frame)
+    }
+
+    const controller = new AbortController()
+    let requestVersion = 0
+
+    const loadChatTitle = () => {
+      const version = ++requestVersion
+      setChatTitle(null)
+
+      void getChat(chatId, controller.signal)
+        .then((detail) => {
+          if (!controller.signal.aborted && version === requestVersion) {
+            setChatTitle(detail.chat.title)
+          }
+        })
+        .catch(() => {
+          if (!controller.signal.aborted && version === requestVersion) {
+            setChatTitle(null)
+          }
+        })
+    }
+
+    const frame = window.requestAnimationFrame(loadChatTitle)
+    window.addEventListener(CHAT_LIST_CHANGED_EVENT, loadChatTitle)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      controller.abort()
+      window.removeEventListener(CHAT_LIST_CHANGED_EVENT, loadChatTitle)
+    }
+  }, [pathname])
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -74,7 +129,7 @@ export function DashboardShell({
     <DashboardProfileProvider
       profile={{ displayName, email, avatarUrl, authProvider }}
     >
-      <div className="flex h-dvh min-h-0 overflow-hidden bg-[#0b0b0b] text-zinc-100">
+      <div className="dashboard-root flex h-dvh min-h-0 overflow-hidden bg-[#0b0b0b] text-zinc-100">
         <DashboardSidebar
           activeSection={isSearchOpen ? "search" : activeSection}
           displayName={displayName}
@@ -101,13 +156,14 @@ export function DashboardShell({
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <DashboardHeader
             activeItem={activeItem}
+            chatTitle={activeSection === "new-chat" ? chatTitle : null}
             isMobileSidebarOpen={isMobileSidebarOpen}
             isSidebarCollapsed={isSidebarCollapsed}
             onToggleSidebar={toggleSidebar}
             onOpenComputer={() => selectSection("computer")}
           />
           <main
-            className={`min-h-0 flex-1 ${
+            className={`dashboard-scrollbar min-h-0 flex-1 ${
               activeSection === "new-chat"
                 ? "overflow-hidden"
                 : "overflow-y-auto"

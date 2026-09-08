@@ -1,12 +1,12 @@
 import {
-  AiSearch02Icon,
-  ChatEdit01Icon,
-  GitbookIcon,
-  HierarchySquare10Icon,
-  LaptopMinimalIcon,
-  Settings01Icon,
-} from "@hugeicons/core-free-icons"
-import type { IconSvgElement } from "@hugeicons/react"
+  IconBook2,
+  IconDeviceLaptop,
+  IconMessagePlus,
+  IconPlugConnected,
+  IconSearch,
+  IconSettings,
+  type TablerIcon,
+} from "@tabler/icons-react"
 
 export type DashboardSection =
   | "new-chat"
@@ -22,7 +22,7 @@ export type DashboardNavItem = {
   headerLabel: string
   description: string
   href: string | null
-  icon: IconSvgElement
+  icon: TablerIcon
   visibleInSidebar: boolean
 }
 
@@ -33,7 +33,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     headerLabel: "Chat",
     description: "Start a new conversation with Cloudberry.",
     href: "/",
-    icon: ChatEdit01Icon,
+    icon: IconMessagePlus,
     visibleInSidebar: true,
   },
   {
@@ -42,7 +42,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     headerLabel: "Search",
     description: "Find answers across your conversations and connected tools.",
     href: null,
-    icon: AiSearch02Icon,
+    icon: IconSearch,
     visibleInSidebar: true,
   },
   {
@@ -51,7 +51,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     headerLabel: "Cloudpedia",
     description: "Keep your team's living company knowledge in one place.",
     href: "/cloudpedia",
-    icon: GitbookIcon,
+    icon: IconBook2,
     visibleInSidebar: true,
   },
   {
@@ -60,7 +60,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     headerLabel: "Plugins",
     description: "Connect the tools Cloudberry uses with your context.",
     href: "/integrations",
-    icon: HierarchySquare10Icon,
+    icon: IconPlugConnected,
     visibleInSidebar: true,
   },
   {
@@ -69,7 +69,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     headerLabel: "Computer",
     description: "Use Cloudberry's always-on cloud computer.",
     href: "/computer",
-    icon: LaptopMinimalIcon,
+    icon: IconDeviceLaptop,
     visibleInSidebar: true,
   },
   {
@@ -78,7 +78,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     headerLabel: "Settings",
     description: "Manage your Cloudberry account.",
     href: "/settings",
-    icon: Settings01Icon,
+    icon: IconSettings,
     visibleInSidebar: false,
   },
 ]

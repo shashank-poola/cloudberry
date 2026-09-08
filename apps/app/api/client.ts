@@ -80,6 +80,10 @@ function friendlyErrorMessage(code: string | null, fallback: string) {
     case "KNOWLEDGE_UNAVAILABLE":
     case "KNOWLEDGE_TIMEOUT":
       return "Cloudberry's company knowledge is temporarily unavailable."
+    case "CLOUDPEDIA_STORAGE_FAILED":
+      return "Cloudberry could not load your company context."
+    case "CLOUDPEDIA_INVALID_RESPONSE":
+      return "Cloudberry returned invalid company context."
     case "CHAT_NOT_FOUND":
       return "This chat is unavailable in your current workspace."
     case "CHAT_ARCHIVED":

@@ -9,7 +9,6 @@ import {
   createChatMessage,
   getChat,
   notifyChatListChanged,
-  type ChatCitation,
   type ChatMessage as PersistedChatMessage,
   type HostedModelId,
 } from "@/api/chat/client"
@@ -18,21 +17,13 @@ import { CODEX_MODEL_PRESETS, type CodexModelId } from "@/api/codex/catalog"
 import { getIntegrations } from "@/api/integrations/client"
 import type { PromptModelSelection } from "./prompt-input"
 import { useDashboardProfile } from "@/components/dashboard/dashboard-profile-context"
+import { type ChatMessageData } from "./chat-message"
+import { ChatTranscript } from "./chat-transcript"
 import { PromptInput } from "./prompt-input"
-import { ThinkingReasoning } from "./thinking-reasoning"
 import styles from "./chat-view.module.css"
 
 type ChatViewProps = {
   chatId?: string
-}
-
-type ChatMessage = {
-  id: string
-  role: "user" | "assistant"
-  text: string
-  status: PersistedChatMessage["status"]
-  error: string | null
-  citations: ChatCitation[]
 }
 
 type RunPhase = "idle" | "loading" | "thinking" | "failed"
@@ -74,7 +65,7 @@ function getLocalGreeting() {
   return "Good evening"
 }
 
-function toChatMessage(message: PersistedChatMessage): ChatMessage {
+function toChatMessage(message: PersistedChatMessage): ChatMessageData {
   return {
     id: message.id,
     role: message.role,
@@ -97,7 +88,7 @@ export function ChatView({ chatId }: ChatViewProps) {
   const router = useRouter()
   const { displayName } = useDashboardProfile()
   const [greeting, setGreeting] = useState("Hello")
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<ChatMessageData[]>([])
   const [model, setModel] = useState<HostedModelId>(DEFAULT_MODEL)
   const [codexModel, setCodexModel] =
     useState<CodexModelId>(getInitialCodexModel)
@@ -109,6 +100,9 @@ export function ChatView({ chatId }: ChatViewProps) {
     chatId ?? null
   )
   const [resolvedChatId, setResolvedChatId] = useState<string | null>(null)
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
+    null
+  )
   const [activeChatProvider, setActiveChatProvider] = useState<
     "hosted" | "codex" | null
   >(null)
@@ -117,6 +111,9 @@ export function ChatView({ chatId }: ChatViewProps) {
   >("loading")
 
   const controllerRef = useRef<AbortController | null>(null)
+  const pendingStreamingChatIdRef = useRef<string | null>(null)
+  const pendingStreamingMessageIdRef = useRef<string | null>(null)
+  const transcriptRef = useRef<HTMLDivElement>(null)
 
   const isBusy = phase === "loading" || phase === "thinking"
   const isChatLoading = Boolean(chatId && resolvedChatId !== chatId)
@@ -125,8 +122,6 @@ export function ChatView({ chatId }: ChatViewProps) {
   const composerDisabled =
     isBusy ||
     isChatLoading ||
-    codexConnectionState === "loading" ||
-    (codexConnected && codexModelsLoading) ||
     (activeChatProvider === "codex" && !codexConnected)
 
   useEffect(() => {
@@ -150,6 +145,7 @@ export function ChatView({ chatId }: ChatViewProps) {
         setActiveChatId(null)
         setResolvedChatId(null)
         setActiveChatProvider(null)
+        setStreamingMessageId(null)
         setMessages([])
         setError(null)
         setPhase("idle")
@@ -158,10 +154,16 @@ export function ChatView({ chatId }: ChatViewProps) {
     }
 
     const controller = new AbortController()
+    if (pendingStreamingChatIdRef.current !== chatId) {
+      pendingStreamingChatIdRef.current = null
+      pendingStreamingMessageIdRef.current = null
+    }
+
     const frame = window.requestAnimationFrame(() => {
       setActiveChatId(chatId)
       setResolvedChatId(null)
       setActiveChatProvider(null)
+      setStreamingMessageId(null)
       setMessages([])
       setError(null)
       setPhase("loading")
@@ -177,6 +179,18 @@ export function ChatView({ chatId }: ChatViewProps) {
             setCodexModel(detail.chat.model)
           }
           const loadedMessages = detail.messages.map(toChatMessage)
+          const pendingMessageId =
+            pendingStreamingChatIdRef.current === chatId
+              ? pendingStreamingMessageIdRef.current
+              : null
+          setStreamingMessageId(
+            pendingMessageId &&
+              loadedMessages.some((message) => message.id === pendingMessageId)
+              ? pendingMessageId
+              : null
+          )
+          pendingStreamingChatIdRef.current = null
+          pendingStreamingMessageIdRef.current = null
           setMessages(loadedMessages)
           const failedMessage = loadedMessages.find(
             (message) =>
@@ -188,6 +202,9 @@ export function ChatView({ chatId }: ChatViewProps) {
         })
         .catch((caughtError) => {
           if (controller.signal.aborted) return
+          pendingStreamingChatIdRef.current = null
+          pendingStreamingMessageIdRef.current = null
+          setStreamingMessageId(null)
           setError(getApiErrorMessage(caughtError))
           setPhase("failed")
           setResolvedChatId(chatId)
@@ -263,6 +280,9 @@ export function ChatView({ chatId }: ChatViewProps) {
     if (!cleanPrompt || isBusy) return
 
     setError(null)
+    setStreamingMessageId(null)
+    pendingStreamingChatIdRef.current = null
+    pendingStreamingMessageIdRef.current = null
 
     const controller = new AbortController()
     controllerRef.current = controller
@@ -329,14 +349,24 @@ export function ChatView({ chatId }: ChatViewProps) {
           return message
         })
       )
+      const shouldNavigate = !chatId || result.chat.id !== chatId
+      if (shouldNavigate) {
+        pendingStreamingChatIdRef.current = result.chat.id
+        pendingStreamingMessageIdRef.current = result.assistantMessage.id
+        setStreamingMessageId(null)
+      } else {
+        setStreamingMessageId(result.assistantMessage.id)
+      }
       setPhase("idle")
       notifyChatListChanged()
 
-      if (!chatId || result.chat.id !== chatId)
-        router.replace(`/c/${result.chat.id}`)
+      if (shouldNavigate) router.replace(`/c/${result.chat.id}`)
     } catch (caughtError) {
       if (controller.signal.aborted) return
       const message = getApiErrorMessage(caughtError)
+      pendingStreamingChatIdRef.current = null
+      pendingStreamingMessageIdRef.current = null
+      setStreamingMessageId(null)
       setMessages((current) =>
         current.map((entry) =>
           entry.id === temporaryAssistantId
@@ -356,6 +386,25 @@ export function ChatView({ chatId }: ChatViewProps) {
   }
 
   const showWelcome = !chatId && messages.length === 0
+
+  useEffect(() => {
+    if (showWelcome) return
+
+    const transcript = transcriptRef.current
+    if (!transcript) return
+
+    const frame = window.requestAnimationFrame(() => {
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches
+      transcript.scrollTo({
+        top: transcript.scrollHeight,
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [isChatLoading, messages, phase, showWelcome])
 
   return (
     <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
@@ -386,78 +435,12 @@ export function ChatView({ chatId }: ChatViewProps) {
             ) : null}
           </div>
         ) : (
-          <div
-            className={`${styles.transcript} min-h-0 w-full flex-1 overflow-y-auto overscroll-contain`}
-          >
-            <div className="mx-auto w-full max-w-4xl px-5 sm:px-8">
-              <div
-                className="w-full max-w-160 py-8 pb-48 sm:py-10 sm:pb-52"
-                aria-live="polite"
-              >
-                {isChatLoading ? (
-                  <div
-                    className="space-y-5 py-1"
-                    aria-label="Loading conversation"
-                  >
-                    <div className="h-4 w-44 animate-pulse rounded bg-white/8" />
-                    <div className="h-4 w-[72%] animate-pulse rounded bg-white/6" />
-                    <div className="h-4 w-56 animate-pulse rounded bg-white/8" />
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-5">
-                      {messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={
-                            message.role === "user"
-                              ? "ml-auto w-fit max-w-[85%] rounded-xl rounded-br-sm bg-white/10 px-3.5 py-2 text-sm leading-5 wrap-break-word whitespace-pre-wrap text-zinc-100"
-                              : "max-w-[92%] text-sm leading-6 whitespace-pre-wrap text-zinc-300"
-                          }
-                        >
-                          {message.role === "assistant" ? (
-                            <div className="flex gap-3">
-                              <Image
-                                src="/white_cloudberry_logo.png"
-                                alt=""
-                                width={22}
-                                height={22}
-                                className="mt-1 size-5 shrink-0 object-contain opacity-75"
-                              />
-                              <div className="min-w-0">
-                                {message.text ? (
-                                  <p>{message.text}</p>
-                                ) : message.status === "running" ? (
-                                  <ThinkingReasoning />
-                                ) : (
-                                  <p className="text-red-300/90">
-                                    {message.error ??
-                                      "Cloudberry could not complete the request."}
-                                  </p>
-                                )}
-                                {message.citations.length ? (
-                                  <p className="mt-2 text-xs text-zinc-500">
-                                    Grounded in {message.citations.length}{" "}
-                                    company knowledge
-                                    {message.citations.length === 1
-                                      ? " source"
-                                      : " sources"}
-                                    .
-                                  </p>
-                                ) : null}
-                              </div>
-                            </div>
-                          ) : (
-                            message.text
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
+          <ChatTranscript
+            messages={messages}
+            isLoading={isChatLoading}
+            streamingMessageId={streamingMessageId}
+            transcriptRef={transcriptRef}
+          />
         )}
 
         {!showWelcome ? (
@@ -477,7 +460,6 @@ export function ChatView({ chatId }: ChatViewProps) {
             }
           >
             <div
-              data-theme="dark"
               className={`${styles.composer} ${
                 messages.length ? styles.composerCompact : ""
               } w-full max-w-160 ${showWelcome ? "mx-auto" : ""} ${

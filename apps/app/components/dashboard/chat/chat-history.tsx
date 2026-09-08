@@ -1,5 +1,4 @@
-import { ThreadIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
+import { IconMessages } from "@tabler/icons-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import {
@@ -79,11 +78,10 @@ export function ChatHistory({ isCollapsed, onCloseMobile }: ChatHistoryProps) {
   return (
     <section className="mt-5 min-h-0 flex-1 overflow-y-auto">
       <div className="flex h-9 items-center gap-3 rounded-xl px-3 text-left text-[14px] font-semibold tracking-[-0.02em] text-zinc-100">
-        <HugeiconsIcon
-          icon={ThreadIcon}
+        <IconMessages
           size={17}
-          color="currentColor"
-          strokeWidth={1.5}
+          stroke={2}
+          aria-hidden="true"
           className="shrink-0 text-zinc-500"
         />
         <h2>Recent</h2>
@@ -91,8 +89,8 @@ export function ChatHistory({ isCollapsed, onCloseMobile }: ChatHistoryProps) {
 
       {isLoading && chats.length === 0 ? (
         <div className="space-y-1 px-1" aria-label="Loading chat history">
-          <div className="h-8 animate-pulse rounded-lg bg-white/4" />
-          <div className="h-8 animate-pulse rounded-lg bg-white/3" />
+          <div className="skeleton-shimmer h-8 rounded-lg bg-white/4" />
+          <div className="skeleton-shimmer h-8 rounded-lg bg-white/3" />
         </div>
       ) : hasError ? (
         <button

@@ -129,26 +129,62 @@ export const getTriggerDefinitions = (): Record<
     return definitions
   }
 
-  // GITHUB_COMMIT_EVENT is the documented Composio example. Keep this small
-  // fallback useful for local development while requiring explicit definitions
-  // for provider-specific trigger types whose slugs/configs vary by catalog.
+  const definitions = emptyDefinitions()
+
+  // Slack's documented message trigger does not require provider-specific
+  // configuration, so a connected Slack account is useful by default.
+  definitions.slack = [
+    {
+      slug:
+        process.env.COMPOSIO_SLACK_TRIGGER_SLUG?.trim() ||
+        "SLACK_CHANNEL_MESSAGE_RECEIVED",
+      config: {},
+    },
+  ]
+
+  // Linear triggers are scoped to a team. Keep them opt-in until the deployment
+  // supplies a real team ID, while avoiding a large JSON blob for the common
+  // single-team setup.
+  const linearTeamId = process.env.COMPOSIO_LINEAR_TEAM_ID?.trim()
+  if (linearTeamId) {
+    definitions.linear = [
+      {
+        slug:
+          process.env.COMPOSIO_LINEAR_COMMENT_TRIGGER_SLUG?.trim() ||
+          "LINEAR_COMMENT_EVENT_TRIGGER",
+        config: { team_id: linearTeamId },
+      },
+      {
+        slug:
+          process.env.COMPOSIO_LINEAR_ISSUE_CREATED_TRIGGER_SLUG?.trim() ||
+          "LINEAR_ISSUE_CREATED_TRIGGER",
+        config: { team_id: linearTeamId },
+      },
+      {
+        slug:
+          process.env.COMPOSIO_LINEAR_ISSUE_UPDATED_TRIGGER_SLUG?.trim() ||
+          "LINEAR_ISSUE_UPDATED_TRIGGER",
+        config: { team_id: linearTeamId },
+      },
+    ]
+  }
+
+  // GITHUB_COMMIT_EVENT is the documented Composio example. It remains
+  // opt-in because repository scope is always deployment-specific.
   const owner = process.env.COMPOSIO_GITHUB_OWNER?.trim()
   const repo = process.env.COMPOSIO_GITHUB_REPO?.trim()
   if (owner && repo) {
-    return {
-      ...emptyDefinitions(),
-      github: [
-        {
-          slug:
-            process.env.COMPOSIO_GITHUB_TRIGGER_SLUG?.trim() ||
-            "GITHUB_COMMIT_EVENT",
-          config: { owner, repo },
-        },
-      ],
-    }
+    definitions.github = [
+      {
+        slug:
+          process.env.COMPOSIO_GITHUB_TRIGGER_SLUG?.trim() ||
+          "GITHUB_COMMIT_EVENT",
+        config: { owner, repo },
+      },
+    ]
   }
 
-  return emptyDefinitions()
+  return definitions
 }
 
 export const getTriggerDefinitionsFor = (provider: IntegrationProvider) =>

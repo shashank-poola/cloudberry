@@ -28,7 +28,7 @@ uses its own internal bearer token.
 - `apps/app` — authenticated Next.js workspace UI
 - `apps/marketing` — public marketing site
 - `apps/server` — authenticated TypeScript API server
-- `apps/worker` — Supabase job worker and deterministic seed command
+- `apps/worker` — Supabase job worker and optional fixture-only tools
 - `packages/contracts` — shared event and knowledge contracts
 - `packages/ui` — shared React UI components
 - `knowledge_base` — private FastAPI/Graphiti service
@@ -50,17 +50,19 @@ python -m pip install -e ".\\knowledge_base[test]"
 ```
 
 Create the environment files locally from your private deployment
-configuration. The repository intentionally does not publish `.env` templates.
-Use these local file locations:
+configuration. Safe variable-name templates are checked in for the browser,
+worker, and knowledge service; they contain placeholders only. Use these local
+file locations:
 
-- `apps/app/.env.local`
-- `apps/server/.env`
-- `apps/worker/.env`
-- `knowledge_base/.env
+- `apps/app/.env.local` (copy from `apps/app/.env.example`)
+- `apps/server/.env` (copy from `apps/server/.env.example`)
+- `apps/worker/.env` (copy from `apps/worker/.env.example`)
+- `knowledge_base/.env` (copy from `knowledge_base/.env.example`)
 - `supabase/.env`
 
 Never commit environment files, service-role keys, database passwords, or
-provider API keys.
+provider API keys. The templates do not make external services available; fill
+in the real deployment values before starting the flow.
 
 ## Database setup
 
@@ -71,15 +73,11 @@ bunx supabase link --project-ref <project-ref>
 bunx supabase db push
 ```
 
-The worker seeds a deterministic four-event chain. For a signed-in dashboard
-user to retrieve it, target that user's organization UUID (found in
-`organization_members`) rather than the fixed fixture organization:
-
-```powershell
-$env:SEED_ORGANIZATION_ID = "<signed-in-organization-uuid>"
-cd apps/worker
-bun run seed
-```
+Production workspaces are populated by connected integrations, not seed data.
+After applying the migrations, configure the private service credentials and open
+**Plugins** in the signed-in app. Connecting Slack, Linear, or GitHub completes
+OAuth through Composio and provisions the trigger instances that deliver events
+to the API webhook.
 
 ## Run locally
 
@@ -135,6 +133,19 @@ python -m pytest tests -q
 python -m compileall -q app tests
 ```
 
+Cloudpedia is backed by organization-scoped `knowledge_projections`. The
+worker writes projections after a Composio event is ingested and can backfill
+projections for already-processed `company_events`:
+
+```powershell
+cd apps/worker
+bun run backfill
+```
+
+The backfill is for existing integration events; it does not create company
+content. The `seed` command is only a fixture utility for automated tests or a
+throwaway local workspace and is not part of the production data path.
+
 The hosted Graphiti integration test is opt-in because it uses FalkorDB and LLM
 resources:
 
@@ -146,7 +157,8 @@ python -m pytest tests/test_graph_integration.py -q
 ## Current scope
 
 The ingestion pipeline is validated end to end: Supabase company events are
-claimed by the worker, ingested into Graphiti/FalkorDB, and returned through
+received from Composio triggers, claimed by the worker, ingested into
+Graphiti/FalkorDB, projected for Cloudpedia, and returned through
 organization-scoped search with event provenance.
 
 Codex is a standalone first-class integration, separate from the Prized

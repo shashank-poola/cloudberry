@@ -1,26 +1,5 @@
 .transcript {
-  color-scheme: dark;
-  scrollbar-color: rgba(161, 161, 170, 0.72) transparent;
-  scrollbar-width: thin;
-}
-
-.transcript::-webkit-scrollbar {
-  width: 10px;
-}
-
-.transcript::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.transcript::-webkit-scrollbar-thumb {
-  border: 3px solid transparent;
-  border-radius: 999px;
-  background: rgba(161, 161, 170, 0.72);
-  background-clip: content-box;
-}
-
-.transcript::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(212, 212, 216, 0.86);
+  color-scheme: inherit;
 }
 
 .composerBackdrop {
@@ -30,7 +9,7 @@
   left: 0;
   z-index: 5;
   height: 168px;
-  background: #0b0b0b;
+  background: var(--dashboard-bg);
   pointer-events: none;
 }
 

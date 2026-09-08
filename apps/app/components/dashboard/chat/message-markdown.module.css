@@ -1,0 +1,255 @@
+.prose {
+  min-width: 0;
+  color: inherit;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose > :last-child {
+  margin-bottom: 0;
+}
+
+.prose p {
+  margin: 0 0 0.85rem;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  color: #f4f4f5;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.prose h1 {
+  margin: 1.35rem 0 0.7rem;
+  font-size: 1.45rem;
+}
+
+.prose h2 {
+  margin: 1.25rem 0 0.6rem;
+  font-size: 1.2rem;
+}
+
+.prose h3 {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.prose h4,
+.prose h5,
+.prose h6 {
+  margin: 1rem 0 0.45rem;
+  font-size: 0.95rem;
+}
+
+.prose ul,
+.prose ol {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 0.85rem;
+  padding-inline-start: 1.35rem;
+}
+
+.prose ul ul,
+.prose ul ol,
+.prose ol ul,
+.prose ol ol {
+  margin: 0.45rem 0 0.15rem;
+}
+
+.prose li {
+  padding-inline-start: 0.15rem;
+}
+
+.prose li > p:last-child {
+  margin-bottom: 0;
+}
+
+.prose li::marker {
+  color: #a1a1aa;
+}
+
+.prose :global(ul.contains-task-list) {
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.prose :global(ul.contains-task-list) li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding-inline-start: 0;
+}
+
+.prose :global(ul.contains-task-list) input[type="checkbox"] {
+  flex: 0 0 auto;
+  accent-color: #a78bfa;
+}
+
+.prose blockquote {
+  margin: 0 0 0.85rem;
+  padding: 0.1rem 0 0.1rem 1rem;
+  border-inline-start: 3px solid rgba(161, 161, 170, 0.5);
+  color: #a1a1aa;
+}
+
+.prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.prose a {
+  color: #c4b5fd;
+  text-decoration: underline;
+  text-decoration-color: rgba(196, 181, 253, 0.45);
+  text-underline-offset: 3px;
+  transition: color 140ms ease, text-decoration-color 140ms ease;
+}
+
+.prose a:hover {
+  color: #ddd6fe;
+  text-decoration-color: currentColor;
+}
+
+.prose a:focus-visible {
+  outline: 2px solid rgba(196, 181, 253, 0.8);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.prose strong {
+  color: #f4f4f5;
+  font-weight: 600;
+}
+
+.prose del {
+  color: #a1a1aa;
+}
+
+.prose hr {
+  margin: 1.2rem 0;
+  border: 0;
+  border-top: 1px solid rgba(161, 161, 170, 0.2);
+}
+
+.prose :not(pre) > code {
+  padding: 0.16rem 0.38rem;
+  border: 1px solid rgba(161, 161, 170, 0.2);
+  border-radius: 0.35rem;
+  background: rgba(24, 24, 27, 0.9);
+  color: #e4e4e7;
+  font-size: 0.88em;
+  white-space: break-spaces;
+}
+
+.prose pre {
+  max-width: 100%;
+  margin: 0 0 0.95rem;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  border: 1px solid rgba(161, 161, 170, 0.18);
+  border-radius: 0.75rem;
+  background: #18181b;
+  color: #e4e4e7;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  scrollbar-color: rgba(161, 161, 170, 0.6) transparent;
+  scrollbar-width: thin;
+}
+
+.prose pre code {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.tableWrapper {
+  max-width: 100%;
+  margin: 0 0 0.95rem;
+  overflow-x: auto;
+  border: 1px solid rgba(161, 161, 170, 0.2);
+  border-radius: 0.75rem;
+  scrollbar-color: rgba(161, 161, 170, 0.6) transparent;
+  scrollbar-width: thin;
+}
+
+.tableWrapper table {
+  width: 100%;
+  min-width: 28rem;
+  border-collapse: collapse;
+  color: #d4d4d8;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.tableWrapper th,
+.tableWrapper td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid rgba(161, 161, 170, 0.15);
+  vertical-align: top;
+}
+
+.tableWrapper th {
+  color: #f4f4f5;
+  background: rgba(39, 39, 42, 0.75);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tableWrapper tbody tr:nth-child(even) {
+  background: rgba(39, 39, 42, 0.25);
+}
+
+.tableWrapper tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+:global([data-theme="light"]) .prose h1,
+:global([data-theme="light"]) .prose h2,
+:global([data-theme="light"]) .prose h3,
+:global([data-theme="light"]) .prose h4,
+:global([data-theme="light"]) .prose h5,
+:global([data-theme="light"]) .prose h6,
+:global([data-theme="light"]) .prose strong {
+  color: #18181b;
+}
+
+:global([data-theme="light"]) .prose blockquote {
+  border-inline-start-color: rgba(82, 82, 91, 0.45);
+  color: #52525b;
+}
+
+:global([data-theme="light"]) .prose :not(pre) > code {
+  border-color: rgba(24, 24, 27, 0.14);
+  background: rgba(228, 228, 231, 0.9);
+  color: #27272a;
+}
+
+:global([data-theme="light"]) .tableWrapper table {
+  color: #27272a;
+}
+
+:global([data-theme="light"]) .tableWrapper th {
+  color: #18181b;
+  background: rgba(228, 228, 231, 0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prose a {
+    transition: none;
+  }
+}

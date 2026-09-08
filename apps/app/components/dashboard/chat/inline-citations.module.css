@@ -1,0 +1,111 @@
+.citeProse {
+  max-width: 100%;
+  margin-top: 0.65rem;
+  color: #71717a;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.summary {
+  margin: 0;
+}
+
+.citeFooter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+  margin-top: 0.5rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(161, 161, 170, 0.16);
+}
+
+.citeRef {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.4rem;
+  color: #71717a;
+}
+
+.citeMark {
+  display: inline-flex;
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.35rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: #a1a1aa;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.citeTip {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  border-radius: 0.35rem;
+  outline: none;
+}
+
+.citeTip:focus-visible {
+  outline: 2px solid rgba(196, 181, 253, 0.75);
+  outline-offset: 2px;
+}
+
+.citeTipBox {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 0.4rem);
+  left: 50%;
+  max-width: min(22rem, 80vw);
+  padding: 0.35rem 0.45rem;
+  transform: translate(-50%, 0.15rem);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.4rem;
+  background: rgba(39, 39, 42, 0.96);
+  color: #e4e4e7;
+  font-size: 0.65rem;
+  font-weight: 500;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
+  white-space: normal;
+  width: max-content;
+}
+
+.citeTip:hover .citeTipBox,
+.citeTip:focus .citeTipBox {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+.citeRefLabel {
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+.citeSep {
+  color: #52525b;
+}
+
+.citeRefId {
+  max-width: 11rem;
+  overflow: hidden;
+  color: #71717a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .citeTipBox {
+    transition: none;
+  }
+}

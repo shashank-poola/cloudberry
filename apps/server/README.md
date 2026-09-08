@@ -18,6 +18,7 @@ Available endpoints:
 - `GET /api/v1/computer`
 - `POST /api/v1/computer/provision`
 - `GET /api/v1/chats`
+- `GET /api/v1/cloudpedia`
 - `GET /api/v1/chats/codex/models` (requires an in-memory Codex session)
 - `POST /api/v1/chats`
 - `GET /api/v1/chats/:chatId`
@@ -41,18 +42,24 @@ uses OpenAI's device authorization flow independently and Cloudberry does not
 persist its OAuth tokens.
 
 Copy `.env.example` to `.env` and configure `COMPOSIO_API_KEY`, the callback and
-webhook URLs/secrets, and `COMPOSIO_TRIGGER_DEFINITIONS`. Trigger definitions
-must use the exact slugs/configuration from the Composio trigger catalog. The
+webhook URLs/secrets, and any provider-specific scope. Trigger definitions must
+use the exact slugs/configuration from the Composio trigger catalog. The
 currently supported read-only trigger examples are:
 
 - Slack: `SLACK_CHANNEL_MESSAGE_RECEIVED` with an empty config.
-- Linear: `LINEAR_COMMENT_EVENT_TRIGGER`, `LINEAR_ISSUE_CREATED_TRIGGER`, and
-  `LINEAR_ISSUE_UPDATED_TRIGGER`, each with `{ "team_id": "..." }`.
+- Linear: `LINEAR_COMMENT_EVENT_TRIGGER`, `LINEAR_ISSUE_CREATED_TRIGGER`, and `LINEAR_ISSUE_UPDATED_TRIGGER`, each with `{ "team_id": "..." }`.
 - GitHub: `GITHUB_COMMIT_EVENT` with `{ "owner": "...", "repo": "..." }`.
 
-The server will connect an account even when no trigger definitions are
-configured, but will report the event stream as not configured until
-one or more definitions are supplied.
+When `COMPOSIO_TRIGGER_DEFINITIONS` is omitted, the server provisions the
+documented Slack trigger automatically. Set `COMPOSIO_LINEAR_TEAM_ID` to
+provision the three documented Linear triggers, or use
+`COMPOSIO_TRIGGER_DEFINITIONS` when your deployment needs a different catalog
+configuration. GitHub remains opt-in through `COMPOSIO_GITHUB_OWNER` and
+`COMPOSIO_GITHUB_REPO`.
+
+The server will not activate event delivery until the Composio API key, public
+webhook URL, and the signing secret returned by the webhook subscription are
+configured.
 
 The Composio webhook URL must be publicly reachable in production. Set
 `COMPOSIO_WEBHOOK_SECRET` to the signing secret returned by the Composio webhook
@@ -80,6 +87,14 @@ in both `apps/server/.env` and `knowledge_base/.env`. The API returns a
 specific configuration error when the hosted or knowledge service is
 unavailable; Codex can still answer without knowledge when that optional
 service is down.
+
+The production event path is:
+
+`Composio trigger → signed webhook → company_events → knowledge worker → Graphiti + Cloudpedia projections`
+
+Cloudpedia projections are written after successful event ingestion. Restarting
+the worker also backfills projections for previously processed events, so
+existing integration history becomes visible without replaying provider events.
 
 Run server tests with:
 

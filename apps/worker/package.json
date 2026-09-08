@@ -7,6 +7,7 @@
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "seed": "bun src/seed.ts",
+    "backfill": "bun src/backfill.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

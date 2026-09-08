@@ -1,10 +1,8 @@
-import {
-  assertCompanyEvent,
-  type CompanyEvent,
-} from "@cloudberry/contracts"
+import { assertCompanyEvent, type CompanyEvent } from "@cloudberry/contracts"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { WorkerConfig } from "../config"
 import { ingestEvent } from "../knowledge-client"
+import { projectEvent } from "./project-event"
 
 type ClaimedJob = {
   id: string
@@ -13,6 +11,7 @@ type ClaimedJob = {
 }
 
 type NormalizedEventRow = {
+  organization_id: string
   normalized_payload: unknown
 }
 
@@ -62,6 +61,7 @@ export const processNextJob = async (
   try {
     const event = await getEvent(database, job.company_event_id)
     await ingestEvent(config, event)
+    await projectEvent(database, event)
     await markSucceeded(database, job, event)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -78,7 +78,7 @@ const getEvent = async (
 ): Promise<CompanyEvent> => {
   const { data, error } = await database
     .from("company_events")
-    .select("normalized_payload")
+    .select("organization_id, normalized_payload")
     .eq("id", companyEventId)
     .maybeSingle<NormalizedEventRow>()
 
@@ -89,7 +89,14 @@ const getEvent = async (
     throw new Error(`Company event ${companyEventId} was not found`)
   }
 
-  return assertCompanyEvent(data.normalized_payload)
+  const event = assertCompanyEvent(data.normalized_payload)
+  if (data.organization_id !== event.organization_id) {
+    throw new Error(
+      `Company event ${event.id} has an organization scope mismatch`
+    )
+  }
+
+  return event
 }
 
 const markSucceeded = async (
@@ -133,7 +140,9 @@ const markFailedOrRetry = async (
   maxAttempts: number
 ) => {
   const terminal = job.attempts >= maxAttempts
-  const nextAttemptAt = new Date(Date.now() + retryDelayMs(job.attempts)).toISOString()
+  const nextAttemptAt = new Date(
+    Date.now() + retryDelayMs(job.attempts)
+  ).toISOString()
   const status = terminal ? "failed" : "queued"
 
   const { error: jobError } = await database

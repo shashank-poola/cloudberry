@@ -1,5 +1,4 @@
-import { TerminalIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
+import { IconTerminal2 } from "@tabler/icons-react"
 import { ComputerStatus } from "./computer-status"
 
 export function ComputerView() {
@@ -20,12 +19,7 @@ export function ComputerView() {
 
         <div className="mt-8 flex min-h-100 flex-col items-center justify-center rounded-2xl border border-dashed border-white/12 bg-white/2 px-6 py-10 text-center sm:min-h-112">
           <span className="flex size-12 items-center justify-center rounded-xl border border-white/10 bg-[#141414] text-zinc-400">
-            <HugeiconsIcon
-              icon={TerminalIcon}
-              size={24}
-              color="currentColor"
-              strokeWidth={1.4}
-            />
+            <IconTerminal2 size={24} stroke={2} aria-hidden="true" />
           </span>
           <h3 className="mt-5 text-base font-semibold text-zinc-100">
             Managed workspace

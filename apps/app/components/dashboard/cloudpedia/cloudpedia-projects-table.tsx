@@ -1,7 +1,8 @@
-import type { CloudpediaProject } from "./cloudpedia-data"
+import type { CloudpediaProject } from "@/api/cloudpedia/client"
 
 type CloudpediaProjectsTableProps = {
   projects: CloudpediaProject[]
+  emptyMessage?: string
 }
 
 function statusClasses(status: CloudpediaProject["status"]) {
@@ -18,6 +19,7 @@ function statusClasses(status: CloudpediaProject["status"]) {
 
 export function CloudpediaProjectsTable({
   projects,
+  emptyMessage = "No projects match your search.",
 }: CloudpediaProjectsTableProps) {
   return (
     <div className="overflow-x-auto rounded-xl border border-white/[0.08]">
@@ -46,9 +48,7 @@ export function CloudpediaProjectsTable({
         </tbody>
       </table>
       {projects.length === 0 ? (
-        <p className="px-4 py-5 text-sm text-zinc-500">
-          No projects match your search.
-        </p>
+        <p className="px-4 py-5 text-sm text-zinc-500">{emptyMessage}</p>
       ) : null}
     </div>
   )

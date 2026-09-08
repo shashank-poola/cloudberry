@@ -1,5 +1,4 @@
 import Image from "next/image"
-import { HugeiconsIcon } from "@hugeicons/react"
 import { ChatHistory } from "./chat/chat-history"
 import { ProfileMenu } from "./profile/profile-menu"
 import { dashboardNavItems, type DashboardSection } from "./dashboard-nav"
@@ -35,7 +34,7 @@ export function DashboardSidebar({
     <aside
       id="cloudberry-sidebar"
       aria-label="Cloudberry navigation"
-      className={`fixed inset-y-0 left-0 z-40 h-dvh w-63.5 -translate-x-full overflow-visible border-r border-white/8 bg-[#0c0c0c] transition-[width,transform] duration-200 ease-out lg:relative lg:block lg:translate-x-0 ${
+      className={`dashboard-sidebar fixed inset-y-0 left-0 z-40 h-dvh w-63.5 -translate-x-full overflow-visible border-r border-white/8 bg-[#0c0c0c] transition-[width,transform] duration-200 ease-out lg:relative lg:block lg:translate-x-0 ${
         isMobileOpen ? "translate-x-0" : ""
       } ${isCollapsed ? "lg:w-16" : "lg:w-63.5"}`}
     >
@@ -49,9 +48,9 @@ export function DashboardSidebar({
             <Image
               src="/white_cloudberry_logo.png"
               alt="Cloudberry"
-              width={32}
-              height={32}
-              className="size-8 object-contain"
+              width={36}
+              height={36}
+              className="size-9 object-contain"
               priority
             />
           ) : (
@@ -59,9 +58,9 @@ export function DashboardSidebar({
               <Image
                 src="/white_cloudberry_logo.png"
                 alt=""
-                width={32}
-                height={32}
-                className="size-8 object-contain"
+                width={36}
+                height={36}
+                className="size-9 object-contain"
                 priority
               />
               <span className="text-[19px] font-semibold tracking-[-0.04em]">
@@ -91,25 +90,28 @@ export function DashboardSidebar({
                   }}
                   aria-label={isCollapsed ? item.label : undefined}
                   aria-current={isActive ? "page" : undefined}
-                  className={`group relative flex h-9 w-full items-center gap-3 rounded-xl px-3 text-left text-[14px] font-semibold tracking-[-0.02em] transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white ${
+                  className={`group relative flex h-9 items-center rounded-xl text-left text-[14px] font-semibold tracking-[-0.02em] transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white ${
                     isActive
                       ? "bg-white/11 text-zinc-100"
                       : "text-zinc-100 hover:bg-white/6"
                   } ${
-                    isCollapsed ? "justify-center gap-0 px-0 lg:size-9" : ""
+                    isCollapsed
+                      ? "w-9 justify-center gap-0 px-0 lg:mx-auto"
+                      : "w-full gap-3 px-3"
                   }`}
                 >
-                  <HugeiconsIcon
-                    icon={item.icon}
-                    size={17}
-                    color="currentColor"
-                    strokeWidth={1.5}
-                    className={`shrink-0 transition-colors ${
-                      isActive
-                        ? "text-zinc-100"
-                        : "text-zinc-500 group-hover:text-zinc-300"
-                    }`}
-                  />
+                  <span className="flex size-5 shrink-0 items-center justify-center">
+                    <item.icon
+                      size={18}
+                      stroke={2}
+                      aria-hidden="true"
+                      className={`shrink-0 transition-colors ${
+                        isActive
+                          ? "text-zinc-100"
+                          : "text-zinc-500 group-hover:text-zinc-300"
+                      }`}
+                    />
+                  </span>
                   <span className={isCollapsed ? "hidden" : undefined}>
                     {item.label}
                   </span>

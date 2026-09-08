@@ -1,23 +1,32 @@
 import {
-  LaptopMinimalIcon,
-  SidebarLeft01Icon,
-  SidebarRight01Icon,
-} from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
+  IconDeviceLaptop,
+  IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebarLeftExpand,
+} from "@tabler/icons-react"
 import type { DashboardNavItem } from "./dashboard-nav"
 
 type DashboardHeaderProps = {
   activeItem: DashboardNavItem
   isMobileSidebarOpen: boolean
   isSidebarCollapsed: boolean
+  chatTitle?: string | null
   onToggleSidebar: () => void
   onOpenComputer: () => void
+}
+
+const BREADCRUMB_TITLE_WORDS = 5
+
+function getBreadcrumbTitle(title: string) {
+  const words = title.trim().split(/\s+/)
+  if (words.length <= BREADCRUMB_TITLE_WORDS) return title
+  return `… ${words.slice(0, BREADCRUMB_TITLE_WORDS).join(" ")}`
 }
 
 export function DashboardHeader({
   activeItem,
   isMobileSidebarOpen,
   isSidebarCollapsed,
+  chatTitle,
   onToggleSidebar,
   onOpenComputer,
 }: DashboardHeaderProps) {
@@ -27,31 +36,46 @@ export function DashboardHeader({
         <button
           type="button"
           onClick={onToggleSidebar}
-          aria-label="Toggle sidebar"
+          aria-label={
+            isMobileSidebarOpen
+              ? "Close sidebar"
+              : isSidebarCollapsed
+                ? "Open sidebar"
+                : "Toggle sidebar"
+          }
           aria-controls="cloudberry-sidebar"
           className="flex size-8 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/[0.07] hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           <span className="hidden lg:inline-flex">
-            <HugeiconsIcon
-              icon={isSidebarCollapsed ? SidebarRight01Icon : SidebarLeft01Icon}
-              size={18}
-              color="currentColor"
-              strokeWidth={1.5}
-            />
+            {isSidebarCollapsed ? (
+              <IconLayoutSidebarLeftExpand size={18} stroke={2} />
+            ) : (
+              <IconLayoutSidebarLeftCollapse size={18} stroke={2} />
+            )}
           </span>
           <span className="inline-flex lg:hidden">
-            <HugeiconsIcon
-              icon={
-                isMobileSidebarOpen ? SidebarLeft01Icon : SidebarRight01Icon
-              }
-              size={18}
-              color="currentColor"
-              strokeWidth={1.5}
-            />
+            {isMobileSidebarOpen ? (
+              <IconLayoutSidebarLeftCollapse size={18} stroke={2} />
+            ) : (
+              <IconLayoutSidebarLeftExpand size={18} stroke={2} />
+            )}
           </span>
         </button>
-        <h1 className="truncate text-sm font-semibold tracking-[-0.02em] text-zinc-100">
-          {activeItem.headerLabel}
+        <h1 className="flex min-w-0 items-center gap-1.5 text-sm font-semibold tracking-[-0.02em] text-zinc-100">
+          <span className="shrink-0">{activeItem.headerLabel}</span>
+          {chatTitle ? (
+            <>
+              <span aria-hidden="true" className="shrink-0 text-zinc-600">
+                /
+              </span>
+              <span
+                className="min-w-0 truncate text-sm font-semibold text-zinc-100"
+                title={chatTitle}
+              >
+                {getBreadcrumbTitle(chatTitle)}
+              </span>
+            </>
+          ) : null}
         </h1>
       </div>
 
@@ -65,12 +89,7 @@ export function DashboardHeader({
             : "text-zinc-500 hover:bg-white/[0.07] hover:text-zinc-200"
         }`}
       >
-        <HugeiconsIcon
-          icon={LaptopMinimalIcon}
-          size={21}
-          color="currentColor"
-          strokeWidth={1.5}
-        />
+        <IconDeviceLaptop size={21} stroke={2} />
       </button>
     </header>
   )

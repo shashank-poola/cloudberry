@@ -4,6 +4,7 @@ import Image from "next/image"
 import { useState, type FormEvent } from "react"
 
 import { DashboardAvatar } from "./dashboard-avatar"
+import { ThemeSettings } from "./theme-settings"
 
 type ProfileSettingsViewProps = {
   displayName: string
@@ -152,6 +153,8 @@ export function ProfileSettingsView({
             />
           </div>
         </div>
+
+        <ThemeSettings />
 
         <div className="mt-10 border-t border-white/[0.08] pt-8">
           <h3 className="text-sm font-semibold text-zinc-200">Sessions</h3>

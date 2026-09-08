@@ -1,11 +1,10 @@
 import { useState } from "react"
 import {
-  BookOpen01Icon,
-  FlipVerticalIcon,
-  Logout01Icon,
-  Settings01Icon,
-} from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
+  IconBook2,
+  IconCaretUpDown,
+  IconLogout,
+  IconSettings,
+} from "@tabler/icons-react"
 import { SignOutButton } from "@/components/auth/sign-out-button"
 import { DashboardAvatar } from "./dashboard-avatar"
 
@@ -76,11 +75,10 @@ export function ProfileMenu({
               onClick={openSettings}
               className="flex h-9 w-full items-center gap-3 rounded-xl px-3 text-left text-[13px] font-semibold text-zinc-100 transition-colors hover:bg-white/[0.08] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white"
             >
-              <HugeiconsIcon
-                icon={Settings01Icon}
+              <IconSettings
                 size={17}
-                color="currentColor"
-                strokeWidth={1.5}
+                stroke={2}
+                aria-hidden="true"
                 className="text-zinc-500"
               />
               Settings
@@ -90,26 +88,28 @@ export function ProfileMenu({
               onClick={openDocs}
               className="flex h-9 w-full items-center gap-3 rounded-xl px-3 text-left text-[13px] font-semibold text-zinc-100 transition-colors hover:bg-white/[0.08] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white"
             >
-              <HugeiconsIcon
-                icon={BookOpen01Icon}
+              <IconBook2
                 size={17}
-                color="currentColor"
-                strokeWidth={1.5}
+                stroke={2}
+                aria-hidden="true"
                 className="text-zinc-500"
               />
               Docs
             </button>
           </div>
-          <div className="relative mt-1.5 border-t border-white/[0.08] pt-1.5">
-            <HugeiconsIcon
-              icon={Logout01Icon}
-              size={17}
-              color="currentColor"
-              strokeWidth={1.5}
-              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-zinc-500"
-            />
-            <div className="[&_button]:flex [&_button]:h-9 [&_button]:w-full [&_button]:items-center [&_button]:justify-start [&_button]:rounded-xl [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-3 [&_button]:py-1.5 [&_button]:pl-9 [&_button]:text-[13px] [&_button]:font-semibold [&_button]:text-zinc-100 [&_button]:shadow-none [&_button]:transition-colors [&_button]:hover:bg-white/[0.08] [&_button]:focus-visible:outline-2 [&_button]:focus-visible:outline-offset-1 [&_button]:focus-visible:outline-white">
-              <SignOutButton />
+          <div className="mt-1.5 rounded-xl transition-colors hover:bg-white/[0.08]">
+            <div className="flex items-start gap-3 px-3">
+              <IconLogout
+                size={17}
+                stroke={2}
+                aria-hidden="true"
+                className="mt-2 shrink-0 text-zinc-500"
+              />
+              <div className="min-w-0 flex-1">
+                <SignOutButton
+                  className="flex h-9 w-full items-center justify-start rounded-xl border-0 bg-transparent px-0 py-1.5 text-[13px] font-semibold text-zinc-100 shadow-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -139,11 +139,10 @@ export function ProfileMenu({
             {email ?? "Cloudberry account"}
           </span>
         </span>
-        <HugeiconsIcon
-          icon={FlipVerticalIcon}
+        <IconCaretUpDown
           size={15}
-          color="currentColor"
-          strokeWidth={1.5}
+          stroke={2}
+          aria-hidden="true"
           className="shrink-0 text-zinc-500"
         />
       </button>
