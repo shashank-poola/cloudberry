@@ -1,0 +1,47 @@
+---
+title: Troubleshooting
+description: Fix the most common Cloudberry workspace and integration issues.
+---
+
+## Events not configured
+
+The provider account is connected, but Cloudberry has not created or updated its event triggers.
+
+1. Check the provider setup in **Plugins**.
+2. Confirm the correct Linear team or GitHub repository is selected when applicable.
+3. Ask an organization owner to choose **Retry**.
+4. Reconnect the provider if the account, team, or repository changed.
+
+## HTTPS webhooks
+
+Composio webhook subscriptions require a public HTTPS URL. `http://localhost` works only for your local API and cannot be registered as the Composio subscription URL.
+
+For local development, expose your API with a secure tunnel and use:
+
+```text
+https://your-public-host/api/v1/integrations/webhooks/composio
+```
+
+The webhook secret must be the signing secret returned by Composio.
+
+## Empty Cloudpedia
+
+Cloudpedia is updated after provider events are processed. Check that:
+
+- the integration shows **Events active**;
+- the worker is running for self-hosted deployments; and
+- the knowledge service is healthy.
+
+Cloudberry currently receives configured new events rather than importing complete provider history.
+
+## Chat lacks context
+
+Check that the knowledge service is available and that the relevant provider is connected. If Codex is selected, it may still answer without company knowledge while the service is unavailable. Hosted Chat requires the knowledge service.
+
+## Reauthorize Codex
+
+Codex credentials are kept in server memory and are intentionally not stored permanently. Reauthorize Codex after an API-server restart.
+
+## Computer unavailable
+
+Check the Prized provider configuration and the computer status. The current Computer feature provisions or wakes a resource; it does not run commands or automate a browser.

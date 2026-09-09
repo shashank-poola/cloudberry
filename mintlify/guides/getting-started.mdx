@@ -1,0 +1,52 @@
+---
+title: Getting started
+description: Set up Cloudberry and get your team ready to use it.
+---
+
+Follow these steps to get a Cloudberry workspace ready for your team.
+
+## Sign in
+
+Open your Cloudberry workspace and sign in with Google or GitHub through Supabase Auth.
+
+Email and password sign-up is not enabled in the current setup.
+
+## Open Plugins
+
+After signing in, open **Plugins** in the Cloudberry dashboard. This is where an organization owner connects Slack, Linear, or GitHub.
+
+## Connect tools
+
+Choose a provider and complete its connection flow. Cloudberry uses Composio to handle provider authorization.
+
+Start with the tools where your team keeps the most important context. For example:
+
+- Slack for conversations and team decisions.
+- Linear for issues and project work.
+- GitHub for commits and repository activity.
+
+See [Integrations](/integrations/overview) for provider-specific setup.
+
+## Wait for updates
+
+Cloudberry receives new events from the triggers configured for your workspace. Once they are processed, they become available in Chat and Cloudpedia.
+
+The current product does not automatically import the complete history of a provider.
+
+## Ask a question
+
+Open Chat and ask a question about your company. Try:
+
+```text
+What changed on the launch project this week?
+```
+
+```text
+What decisions have we made about the billing migration?
+```
+
+See [Using Chat](/guides/using-chat) for tips.
+
+## Self-hosted teams
+
+If your team runs Cloudberry from the repository, the system also needs a Supabase project, a FalkorDB database, the private knowledge service, and the background worker. Keep those services private and follow the deployment notes in the repository README.

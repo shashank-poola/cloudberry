@@ -1,0 +1,40 @@
+---
+title: Computer API
+description: Check and provision the organization's Prized computer resource.
+---
+
+## Get status
+
+```http
+GET /api/v1/computer
+Authorization: Bearer <supabase-access-token>
+```
+
+Returns the organization's stored computer and a safe provider status summary. If none exists, both values are `null`.
+
+## Provision or wake
+
+```http
+POST /api/v1/computer/provision
+Authorization: Bearer <supabase-access-token>
+Content-Type: application/json
+```
+
+All fields are optional:
+
+```json
+{
+  "name": "cloudberry-main",
+  "tier": "micro",
+  "ttlMinutes": 1440,
+  "autoPauseMin": 60
+}
+```
+
+Cloudberry creates one Prized computer per organization, wakes it when needed, and replaces it if the stored provider resource no longer exists.
+
+## Current scope
+
+This API manages provisioning and status only. It does not expose command execution, a terminal, file operations, or browser automation.
+
+Computer provisioning is separate from Codex authorization.

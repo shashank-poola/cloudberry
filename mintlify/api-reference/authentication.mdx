@@ -1,0 +1,33 @@
+---
+title: Authentication
+description: Authenticate Cloudberry API requests with Supabase Auth.
+---
+
+Cloudberry uses Supabase Auth. Send the user's Supabase access token with every protected API request.
+
+```http
+Authorization: Bearer <supabase-access-token>
+```
+
+Example:
+
+```bash
+curl https://api.example.com/api/v1/cloudpedia \
+  -H "Authorization: Bearer <supabase-access-token>"
+```
+
+## Public endpoints
+
+These endpoints do not use a Supabase bearer token:
+
+- `GET /api/v1/auth/health`
+- `GET /api/v1/integrations/composio/callback` — protected by a one-time connection state.
+- `POST /api/v1/integrations/webhooks/composio` — protected by Composio's signature.
+
+## Owner actions
+
+Only organization owners can connect, reconnect, retry, or disconnect an integration, or cancel a pending Codex connection.
+
+## Keep secrets safe
+
+Do not put service-role keys, provider API keys, webhook secrets, database passwords, or Codex credentials in browser code. The browser should use only the Supabase publishable configuration and the Cloudberry API URL.

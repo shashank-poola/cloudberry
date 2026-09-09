@@ -1,0 +1,46 @@
+---
+title: API overview
+description: Use the Cloudberry API to connect your app to the workspace.
+---
+
+The Cloudberry API is available under `/api/v1`.
+
+Local base URL:
+
+```text
+http://localhost:8000/api/v1
+```
+
+Production applications should use your HTTPS API URL.
+
+## Main endpoints
+
+| Area | Endpoints |
+| --- | --- |
+| Auth | `GET /auth/health`, `GET /auth/me` |
+| Workspace | `GET /organizations/current`, `GET /cloudpedia` |
+| Chat | `GET /chats`, `POST /chats`, `GET /chats/:chatId`, `POST /chats/:chatId/messages` |
+| Integrations | `GET /integrations`, `POST /integrations/:provider/connect`, `POST /integrations/:provider/retry` |
+| Computer | `GET /computer`, `POST /computer/provision` |
+
+All endpoints except API health, the OAuth callback, and the provider webhook require a Supabase access token.
+
+## Response format
+
+Successful requests use:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "error": null
+}
+```
+
+Errors use the same shape with `success: false` and an error code.
+
+## Organization safety
+
+The API derives the organization from the signed-in user's membership. Do not send an organization ID from the browser as an authorization decision.
+
+See [Authentication](/api-reference/authentication) for request headers and the other API pages for examples.

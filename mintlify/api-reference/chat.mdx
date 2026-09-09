@@ -1,0 +1,50 @@
+---
+title: Chat API
+description: Create chats and send questions through Cloudberry.
+---
+
+## Create a chat
+
+```http
+POST /api/v1/chats
+Authorization: Bearer <supabase-access-token>
+Content-Type: application/json
+```
+
+Hosted Chat:
+
+```json
+{
+  "provider": "hosted",
+  "model": "gpt-oss-120b",
+  "title": "Launch questions"
+}
+```
+
+The hosted model can also be omitted. Codex uses a model returned by `GET /api/v1/chats/codex/models` and requires `reasoning_effort: "high"`.
+
+## Send a message
+
+```http
+POST /api/v1/chats/:chatId/messages
+Authorization: Bearer <supabase-access-token>
+Content-Type: application/json
+```
+
+```json
+{
+  "client_message_id": "00000000-0000-4000-8000-000000000003",
+  "content": "What changed on the launch project?"
+}
+```
+
+The API returns the saved user message and the generated assistant message. Assistant messages include citations when company context was used.
+
+## Other endpoints
+
+- `GET /api/v1/chats` — list chats.
+- `GET /api/v1/chats/search?q=launch` — search chat titles and messages.
+- `GET /api/v1/chats/:chatId` — get a chat and its messages.
+- `GET /api/v1/chats/codex/models` — list models from an active Codex session.
+
+Chat searches company knowledge before generation. There is no streaming endpoint in the current API.

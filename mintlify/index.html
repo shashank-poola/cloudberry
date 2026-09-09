@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#090a0a" />
+    <meta
+      name="description"
+      content="Cloudberry documentation for connected company work."
+    />
+    <link rel="icon" href="cloudberry_logo.png" />
+    <link rel="stylesheet" href="site.css" />
+    <title>Introduction · Cloudberry docs</title>
+  </head>
+  <body>
+    <div class="docs-app" id="docs-app">
+      <aside class="docs-sidebar" id="docs-sidebar">
+        <div class="sidebar-inner">
+          <div class="brand-row">
+            <a class="brand" href="#introduction" aria-label="Cloudberry docs home">
+              <img src="cloudberry_logo.png" alt="" width="24" height="24" />
+              <span class="brand-name">Cloudberry</span>
+              <span class="brand-suffix">docs</span>
+            </a>
+            <button
+              class="icon-button sidebar-toggle"
+              id="sidebar-toggle"
+              type="button"
+              aria-label="Collapse sidebar"
+              aria-expanded="true"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Z"></path><path d="M9 4v16M15 9l-3 3 3 3"></path></svg>
+            </button>
+          </div>
+
+          <div class="search-row">
+            <button class="search-box" id="search-trigger" type="button" aria-label="Search documentation" aria-controls="search-dialog-backdrop" aria-expanded="false">
+              <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0-14 0"></path><path d="m21 21-6-6"></path></svg>
+              <span class="search-placeholder">Search</span>
+              <span class="search-shortcuts"><kbd>Ctrl</kbd><kbd>K</kbd></span>
+            </button>
+          </div>
+
+          <nav class="docs-nav" id="docs-nav" aria-label="Documentation navigation"></nav>
+          <nav class="sidebar-footer" aria-label="Secondary links">
+            <a href="#" class="sidebar-footer-link">GitHub</a>
+            <a href="#" class="sidebar-footer-link">Cloudberry</a>
+            <a href="#" class="sidebar-footer-link">Status</a>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="collapsed-controls" id="collapsed-controls" aria-label="Sidebar controls">
+        <button class="icon-button collapsed-control" id="sidebar-expand" type="button" aria-label="Expand sidebar">
+          <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Z"></path><path d="M9 4v16M13 9l3 3-3 3"></path></svg>
+        </button>
+        <button class="icon-button collapsed-control" id="collapsed-search-toggle" type="button" aria-label="Open search">
+          <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0-14 0"></path><path d="m21 21-6-6"></path></svg>
+        </button>
+      </div>
+
+      <div class="search-dialog-backdrop" id="search-dialog-backdrop" hidden>
+        <div class="search-dialog" role="dialog" aria-modal="true" aria-label="Search documentation">
+          <label class="search-dialog-field" for="docs-search">
+            <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0-14 0"></path><path d="m21 21-6-6"></path></svg>
+            <input id="docs-search" type="search" placeholder="Search" autocomplete="off" />
+            <kbd>ESC</kbd>
+          </label>
+        </div>
+      </div>
+
+      <header class="mobile-header">
+        <a class="brand" href="#introduction" aria-label="Cloudberry docs home">
+          <img src="cloudberry_logo.png" alt="" width="24" height="24" />
+          <span class="brand-name">Cloudberry</span>
+          <span class="brand-suffix">docs</span>
+        </a>
+        <button class="mobile-menu-button" id="mobile-menu-button" type="button" aria-label="Open navigation" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </header>
+
+      <main class="docs-main" id="docs-main">
+        <div class="article-column">
+          <article class="docs-article" id="docs-article" data-initial-page="introduction">
+            <header class="article-header">
+              <h1>Introduction</h1>
+            </header>
+            <p>Cloudberry is the company brain for connected work.</p>
+            <p>
+              It brings the context from the tools your team already uses into one workspace, so people can ask questions, find decisions, and understand what is happening without searching every tool separately.
+            </p>
+            <div class="page-actions" aria-label="Page actions">
+              <button class="page-action" id="copy-markdown" type="button"><span class="action-code" aria-hidden="true">&lt;/&gt;</span><span data-action-label>Copy Markdown</span></button>
+              <button class="page-action" id="open-source" type="button"><span data-action-label>Open in</span><span class="action-arrow" aria-hidden="true">↓</span></button>
+            </div>
+            <h2 id="what-you-can-do">What you can do</h2>
+            <h3 id="ask-questions">Ask questions</h3>
+            <p>Use Cloudberry Chat to ask about projects, decisions, tasks, conversations, and code changes. Cloudberry searches your company's connected context before creating an answer.</p>
+            <h3 id="connect-tools">Connect tools</h3>
+            <p>Connect Slack, Linear, and GitHub to keep company knowledge up to date. Cloudberry also supports Codex for users who want to use their connected OpenAI account for chat.</p>
+            <h3 id="the-bigger-picture">The bigger picture</h3>
+            <p>Cloudpedia gives your team a simple view of recent updates, projects, and decisions collected from connected tools.</p>
+            <h3 id="shared-context">Shared context</h3>
+            <p>Every workspace is separated by organization. Your team's data is not mixed with another company's data.</p>
+            <h2 id="next-steps">Next steps</h2>
+            <ol>
+              <li><a href="#guides/getting-started" data-doc-path="guides/getting-started">Set up your workspace</a></li>
+              <li><a href="#integrations/overview" data-doc-path="integrations/overview">Connect Slack, Linear, or GitHub</a></li>
+              <li><a href="#guides/using-chat" data-doc-path="guides/using-chat">Ask your first question</a></li>
+              <li><a href="#core-concepts/cloudpedia" data-doc-path="core-concepts/cloudpedia">Learn about Cloudpedia</a></li>
+            </ol>
+            <h2 id="important-note">Important note</h2>
+            <p>Cloudberry currently learns from new events delivered by connected tools. It does not yet import every historical message, reply directly inside Slack or Linear, or operate a browser/computer on your behalf.</p>
+          </article>
+        </div>
+        <aside class="docs-toc" id="docs-toc" aria-label="On this page">
+          <p class="toc-title"><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"></path></svg><span>On this page</span></p>
+          <nav id="toc-links"></nav>
+        </aside>
+      </main>
+    </div>
+
+    <script src="site.js" defer></script>
+  </body>
+</html>

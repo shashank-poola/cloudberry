@@ -1,0 +1,32 @@
+---
+title: Manage workspace
+description: Simple guidance for company owners and workspace administrators.
+---
+
+Workspace owners keep Cloudberry connected to the tools your team uses and make sure the knowledge flow is healthy.
+
+## Connect sources
+
+Start with Slack, Linear, and GitHub sources that contain durable company context. You can connect each provider separately; connecting one does not connect the others.
+
+## Check status
+
+In **Plugins**, look for:
+
+- **Connected** — Cloudberry has a provider account.
+- **Events active** — the provider triggers are configured and can deliver updates.
+- **Events not configured** — the account exists, but Cloudberry still needs trigger setup.
+- **Needs attention** — authorization, webhook, or provider configuration needs to be fixed.
+
+If a provider is connected but events are not configured, fix the provider settings and use **Retry**. Reconnect when the provider account or repository/team has changed.
+
+## Keep webhooks working
+
+Composio must be able to reach Cloudberry through a public HTTPS webhook. If your company changes its API domain, update the webhook URL and verify the signing secret.
+
+## Current scope
+
+- Provider ingestion follows configured triggers; it is not a complete history import.
+- Cloudpedia is a helpful company view, not a replacement for the original tools.
+- Codex authorization is separate from computer provisioning.
+- Computer provisioning currently manages a Prized resource; it does not automate work on that resource.

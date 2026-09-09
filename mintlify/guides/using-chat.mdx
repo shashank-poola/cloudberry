@@ -1,0 +1,51 @@
+---
+title: Using Chat
+description: Ask better questions and understand Cloudberry answers.
+---
+
+Cloudberry Chat helps your team find answers across connected work context.
+
+## Ask questions
+
+Ask about a project, person, decision, task, repository, or time period.
+
+Good questions:
+
+```text
+What is blocking the mobile launch?
+```
+
+```text
+Who owns the billing migration, and what was decided about it?
+```
+
+```text
+Summarize the recent changes to the payments repository.
+```
+
+## Answer generation
+
+Before Cloudberry answers, it searches the knowledge available for your organization. The answer is then generated using the relevant context and recent messages in the chat.
+
+When source context is available, the answer includes citations to the events used to create it.
+
+## Chat providers
+
+Cloudberry offers two chat providers:
+
+- **Hosted Chat** uses Cloudberry's configured hosted model.
+- **Codex** uses the OpenAI account connected by the user and requires Codex to be authorized in the workspace.
+
+Both providers use Cloudberry knowledge when it is available. Codex can still answer without company knowledge if the optional knowledge service is temporarily unavailable.
+
+## Better results
+
+- Name the project, repository, or person when you know it.
+- Include a time period, such as "this week" or "since the last release".
+- Ask one question at a time.
+- Check the citations when the answer affects an important decision.
+- If Cloudberry says it does not have enough context, connect the relevant tool or ask a more specific question.
+
+## Current limits
+
+Chat is currently a synchronous web experience. Cloudberry does not yet answer directly inside Slack, Linear, or GitHub conversations.

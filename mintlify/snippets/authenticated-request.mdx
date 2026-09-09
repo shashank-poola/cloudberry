@@ -1,0 +1,19 @@
+---
+title: Authenticated request
+description: Add a Supabase access token to a Cloudberry API request.
+---
+
+Cloudberry API requests use a Supabase access token in the `Authorization` header.
+
+```http
+Authorization: Bearer <supabase-access-token>
+```
+
+Example:
+
+```bash
+curl https://api.example.com/api/v1/cloudpedia \
+  -H "Authorization: Bearer <supabase-access-token>"
+```
+
+Never put a service-role key, provider API key, webhook secret, or Codex credential in browser code.

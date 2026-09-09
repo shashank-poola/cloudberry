@@ -1,0 +1,32 @@
+---
+title: GitHub
+description: Connect GitHub repository activity to Cloudberry.
+---
+
+GitHub brings repository and code-change context into Cloudberry.
+
+## Connect GitHub
+
+1. Open **Plugins** in Cloudberry.
+2. Select **GitHub**.
+3. Complete the GitHub authorization flow.
+4. Confirm that the desired repository and event status are active.
+
+Self-hosted deployments configure the repository owner and repository name for event delivery. Your Cloudberry administrator may need to do this before GitHub events appear.
+
+## What it receives
+
+The current default setup receives commit events for a configured repository. These events can contribute to:
+
+- repository updates;
+- project context;
+- Chat answers about recent code changes; and
+- Cloudpedia activity.
+
+## Current limitations
+
+- Cloudberry does not import all historical GitHub activity automatically.
+- Cloudberry does not yet answer in GitHub issues or pull requests.
+- GitHub event delivery must be configured for a specific repository.
+
+If GitHub is connected but events are not active, an organization owner should fix the repository configuration and select **Retry** or reconnect the integration.

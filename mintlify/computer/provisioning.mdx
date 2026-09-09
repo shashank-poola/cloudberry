@@ -1,0 +1,33 @@
+---
+title: Provision computer
+description: Create and check the Prized computer resource for your organization.
+---
+
+An authenticated member of the organization can request a Prized computer. In the current API, provisioning is not restricted to owners, unlike integration management.
+
+## In the dashboard
+
+1. Open the **Computer** area.
+2. Choose **Provision**.
+3. Optionally select a name, tier, lifetime, and auto-pause setting.
+4. Wait for the resource to become available.
+5. Return to the Computer area to view its status.
+
+Cloudberry keeps one computer record per organization. If the computer is paused, provisioning wakes it. If the provider no longer has the stored computer, Cloudberry creates a replacement.
+
+## Optional settings
+
+- **Name** — lowercase letters, numbers, and hyphens.
+- **Tier** — the Prized size for the computer.
+- **Lifetime** — how long the resource may remain provisioned.
+- **Auto-pause** — when the provider should pause an idle resource.
+
+The available tier names depend on the current Cloudberry/Prized integration and may change with the provider.
+
+## Status
+
+Cloudberry shows a safe summary such as the box ID, current state, hostname, tier, and region when the provider returns them. Provider credentials and unrelated sensitive metadata are not shown.
+
+## Current limit
+
+Provisioning only manages the Prized resource. It does not run a command, open a browser, or connect the resource to Codex. Those capabilities are planned rather than available in the current product.

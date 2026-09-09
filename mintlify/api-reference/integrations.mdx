@@ -1,0 +1,52 @@
+---
+title: Integrations API
+description: Start and manage Cloudberry provider connections.
+---
+
+Supported providers are `slack`, `linear`, `github`, and `codex`.
+
+## List connections
+
+```http
+GET /api/v1/integrations
+Authorization: Bearer <supabase-access-token>
+```
+
+The response includes connection status and event status. A provider may be connected while its events are still not configured.
+
+## Start a connection
+
+```http
+POST /api/v1/integrations/slack/connect
+Authorization: Bearer <supabase-access-token>
+```
+
+The request has no body. For Slack, Linear, and GitHub, the response contains a Composio `redirect_url`. For Codex, it contains device authorization details.
+
+## Manage a connection
+
+```text
+POST /api/v1/integrations/:provider/reconnect
+POST /api/v1/integrations/:provider/retry
+POST /api/v1/integrations/:provider/disconnect
+```
+
+These actions require an organization owner.
+
+## Codex polling
+
+```text
+GET  /api/v1/integrations/codex/connect/:attemptId
+POST /api/v1/integrations/codex/connect/:attemptId/cancel
+```
+
+Polling requires a bearer token. Cancelling requires an owner.
+
+## Provider callback
+
+```text
+GET  /api/v1/integrations/composio/callback
+POST /api/v1/integrations/webhooks/composio
+```
+
+The callback is for Composio's completed connection result. The webhook accepts only signed Composio requests. A provider's OAuth code callback is not the same endpoint.

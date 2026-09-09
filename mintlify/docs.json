@@ -1,0 +1,104 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "luma",
+  "name": "Cloudberry",
+  "description": "Cloudberry is the company brain for connected work.",
+  "colors": {
+    "primary": "#c4b5fd",
+    "light": "#ddd6fe",
+    "dark": "#a78bfa"
+  },
+  "logo": {
+    "light": "/cloudberry_logo.png",
+    "dark": "/cloudberry_logo.png",
+    "href": "/"
+  },
+  "favicon": {
+    "light": "/cloudberry_logo.png",
+    "dark": "/cloudberry_logo.png"
+  },
+  "appearance": {
+    "default": "dark"
+  },
+  "background": {
+    "color": {
+      "light": "#ffffff",
+      "dark": "#090a0a"
+    }
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "styling": {
+    "eyebrows": "section",
+    "codeblocks": "system"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get started",
+        "icon": "play",
+        "pages": [
+          "introduction"
+        ]
+      },
+      {
+        "group": "Core concepts",
+        "icon": "layers",
+        "pages": [
+          "core-concepts/company-brain",
+          "core-concepts/knowledge-base",
+          "core-concepts/cloudpedia",
+          "core-concepts/organizations"
+        ]
+      },
+      {
+        "group": "Guides",
+        "icon": "book-open",
+        "pages": [
+          "guides/getting-started",
+          "guides/using-chat",
+          "guides/managing-your-workspace",
+          "guides/troubleshooting"
+        ]
+      },
+      {
+        "group": "Integrations",
+        "icon": "plug",
+        "pages": [
+          "integrations/overview",
+          "integrations/slack",
+          "integrations/linear",
+          "integrations/github",
+          "integrations/codex"
+        ]
+      },
+      {
+        "group": "Computer",
+        "icon": "monitor",
+        "pages": [
+          "computer/overview",
+          "computer/provisioning"
+        ]
+      },
+      {
+        "group": "API reference",
+        "icon": "code-2",
+        "pages": [
+          "api-reference/overview",
+          "api-reference/authentication",
+          "api-reference/chat",
+          "api-reference/integrations",
+          "api-reference/computer"
+        ]
+      },
+      {
+        "group": "Snippets",
+        "icon": "braces",
+        "pages": [
+          "snippets/authenticated-request"
+        ]
+      }
+    ]
+  }
+}

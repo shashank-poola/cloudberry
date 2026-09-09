@@ -1,0 +1,31 @@
+---
+title: Codex
+description: Use your connected OpenAI Codex account for Cloudberry Chat.
+---
+
+Codex is an optional Chat provider. It lets a user connect an OpenAI account and use Codex through Cloudberry's chat experience.
+
+## Connect Codex
+
+1. Open **Plugins** in Cloudberry.
+2. Select **Codex**.
+3. Start the device authorization flow.
+4. Open the verification page shown by Cloudberry.
+5. Enter the displayed code and complete authorization.
+6. Return to Cloudberry and wait for Codex to show as connected.
+
+## Use Codex
+
+When starting a new chat, choose **Codex** as the provider. Cloudberry shows the models available to the connected account.
+
+Codex Chat can use the same company knowledge as Hosted Chat. If the knowledge service is temporarily unavailable, Codex may still answer without company context.
+
+## Security and sessions
+
+Cloudberry does not show your OpenAI access or refresh credentials in the browser and does not store them permanently in the application database. The active Codex session is held by the running server.
+
+Because of this, you may need to authorize Codex again after a server restart.
+
+## Codex vs. Computer
+
+Connecting Codex does not create a computer. The [Computer](/computer/overview) feature uses Prized for a separate computer resource.

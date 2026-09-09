@@ -1,0 +1,47 @@
+---
+title: Integrations
+description: Connect the tools your company already uses to Cloudberry.
+---
+
+Cloudberry connects to the tools where your team works so it can build a shared company context.
+
+## Available tools
+
+| Integration | What Cloudberry uses it for |
+| --- | --- |
+| Slack | Team conversations, updates, and decisions. |
+| Linear | Issues, comments, and project work. |
+| GitHub | Commits and repository activity. |
+| Codex | Chat through a user's connected OpenAI account. |
+
+Slack, Linear, and GitHub are connected through Composio. Codex uses a separate OpenAI authorization flow.
+
+## Connect a tool
+
+1. Sign in to Cloudberry.
+2. Open **Plugins**.
+3. Choose the integration.
+4. Complete the provider's authorization screen.
+5. Wait for the connection and events to show as active.
+
+Only organization owners can connect, reconnect, retry, or disconnect integrations.
+
+## Connection status
+
+- **Not connected** — the provider has not been connected.
+- **Connected** — Cloudberry has a provider account.
+- **Events active** — new provider events can reach Cloudberry.
+- **Events not configured** — the account is connected, but event delivery still needs setup.
+- **Needs attention** — the provider or webhook needs to be fixed.
+
+If you see **Connected · events not configured**, use **Retry** after checking the provider setup. If the provider account, team, or repository changed, reconnect it.
+
+## After connecting
+
+Cloudberry receives new events from the provider, saves them for your organization, and adds useful context to Chat and Cloudpedia.
+
+Cloudberry currently receives configured events rather than importing the complete history of each provider. See the individual integration pages for details.
+
+## Admin webhooks
+
+Composio requires a public HTTPS webhook. A local `http://localhost` address cannot be registered as the webhook subscription URL. This requirement mainly affects self-hosted and local development deployments.
