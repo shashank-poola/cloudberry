@@ -220,9 +220,9 @@ const commonPayload = (event: CompanyEvent) => ({
 })
 
 /**
- * Build the small, deterministic read model used by Cloudpedia. Graphiti is
- * optimized for retrieval; this projection keeps the dashboard queryable and
- * does not make the UI depend on Graphiti internals.
+ * Build the small, deterministic read model used by Cloudpedia. Chat search
+ * reads company events directly; this projection keeps the dashboard
+ * queryable without scanning raw events.
  */
 export const buildEventProjections = (
   event: CompanyEvent,

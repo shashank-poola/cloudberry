@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js"
 import {
   assertKnowledgeSearchResult,
   type KnowledgeSearchResult,
@@ -8,9 +9,7 @@ export const DEFAULT_KNOWLEDGE_TIMEOUT_MS = 8_000
 export const DEFAULT_KNOWLEDGE_RESULT_LIMIT = 8
 
 export type KnowledgeClientOptions = {
-  baseUrl?: string
-  token?: string
-  fetchImpl?: typeof fetch
+  database: SupabaseClient
   timeoutMs?: number
 }
 
@@ -38,25 +37,6 @@ export class KnowledgeClientError extends Error {
   }
 }
 
-const normalizeBaseUrl = (value: string) => {
-  const normalized = value.replace(/\/+$/, "")
-
-  try {
-    const url = new URL(normalized)
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      throw new Error("Unsupported URL protocol")
-    }
-  } catch {
-    throw new KnowledgeClientError(
-      "KNOWLEDGE_NOT_CONFIGURED",
-      null,
-      "configuration"
-    )
-  }
-
-  return normalized
-}
-
 const assertSearchInput = (
   organizationId: string,
   query: string,
@@ -78,27 +58,17 @@ const assertSearchInput = (
   }
 }
 
+/**
+ * Searches company events with the `search_company_knowledge` Postgres
+ * full-text function. Results keep the KnowledgeSearchResult contract so chat
+ * citations point back at the source company events.
+ */
 export class KnowledgeClient implements KnowledgeClientLike {
-  private readonly baseUrl: string
-  private readonly token: string
-  private readonly fetchImpl: typeof fetch
+  private readonly database: SupabaseClient
   private readonly timeoutMs: number
 
-  constructor(options: KnowledgeClientOptions = {}) {
-    const baseUrl = options.baseUrl || process.env.KNOWLEDGE_SERVICE_URL
-    const token = options.token || process.env.KNOWLEDGE_SERVICE_TOKEN
-
-    if (!baseUrl || !token) {
-      throw new KnowledgeClientError(
-        "KNOWLEDGE_NOT_CONFIGURED",
-        null,
-        "configuration"
-      )
-    }
-
-    this.baseUrl = normalizeBaseUrl(baseUrl)
-    this.token = token
-    this.fetchImpl = options.fetchImpl || fetch
+  constructor(options: KnowledgeClientOptions) {
+    this.database = options.database
     this.timeoutMs = options.timeoutMs || DEFAULT_KNOWLEDGE_TIMEOUT_MS
 
     if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0) {
@@ -121,63 +91,35 @@ export class KnowledgeClient implements KnowledgeClientLike {
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs)
 
     try {
-      const response = await this.fetchImpl(
-        `${this.baseUrl}/internal/v1/search`,
-        {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${this.token}`,
-          },
-          body: JSON.stringify({
-            organization_id: organizationId,
-            query,
-            limit,
-          }),
-          signal: controller.signal,
-        }
-      )
+      const { data, error } = await this.database
+        .rpc("search_company_knowledge", {
+          p_organization_id: organizationId,
+          p_query: query,
+          p_limit: limit,
+        })
+        .abortSignal(controller.signal)
 
-      if (!response.ok) {
-        throw new KnowledgeClientError(
-          "KNOWLEDGE_REQUEST_FAILED",
-          response.status,
-          "http"
-        )
+      if (controller.signal.aborted) {
+        throw new KnowledgeClientError("KNOWLEDGE_TIMEOUT", null, "timeout")
+      }
+      if (error) {
+        throw new KnowledgeClientError("KNOWLEDGE_REQUEST_FAILED", null, "http")
       }
 
-      let payload: unknown
       try {
-        payload = await response.json()
+        return assertKnowledgeSearchResult({
+          organization_id: organizationId,
+          query,
+          retrieved_at: new Date().toISOString(),
+          results: Array.isArray(data) ? data : [],
+        })
       } catch {
         throw new KnowledgeClientError(
           "KNOWLEDGE_INVALID_RESPONSE",
-          response.status,
+          null,
           "invalid_response"
         )
       }
-
-      let result: KnowledgeSearchResult
-      try {
-        result = assertKnowledgeSearchResult(payload)
-      } catch {
-        throw new KnowledgeClientError(
-          "KNOWLEDGE_INVALID_RESPONSE",
-          response.status,
-          "invalid_response"
-        )
-      }
-
-      if (result.organization_id !== organizationId) {
-        throw new KnowledgeClientError(
-          "KNOWLEDGE_INVALID_RESPONSE",
-          response.status,
-          "invalid_response"
-        )
-      }
-
-      return result
     } catch (error) {
       if (error instanceof KnowledgeClientError) {
         throw error
@@ -195,5 +137,5 @@ export class KnowledgeClient implements KnowledgeClientLike {
 }
 
 export const createKnowledgeClient = (
-  options: KnowledgeClientOptions = {}
+  options: KnowledgeClientOptions
 ): KnowledgeClient => new KnowledgeClient(options)

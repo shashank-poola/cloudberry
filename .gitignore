@@ -17,7 +17,6 @@ dist-ssr
 !apps/server/.env.example
 !apps/app/.env.example
 !apps/worker/.env.example
-!knowledge_base/.env.example
 
 # turbo
 .turbo

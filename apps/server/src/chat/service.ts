@@ -656,9 +656,9 @@ export class ChatService implements ChatServiceLike {
         )
         reference = buildKnowledgeContext(knowledge.results)
       } catch (error) {
-        // Codex can answer directly through the user's account when the
-        // optional company-knowledge service is unavailable. Hosted chats keep
-        // their existing grounded-answer requirement.
+        // Codex can answer directly through the user's account when company
+        // knowledge search is unavailable. Hosted chats keep their existing
+        // grounded-answer requirement.
         if (chat.provider !== "codex") throw error
       }
 

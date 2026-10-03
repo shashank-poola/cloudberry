@@ -91,18 +91,16 @@ reauthorize after a server restart because those credentials are intentionally
 not durable.
 
 Hosted chat generation also requires `GENERALCOMPUTE_API_KEY`. Company
-knowledge requires the `KNOWLEDGE_SERVICE_URL`/`KNOWLEDGE_SERVICE_TOKEN` pair.
-For local development, use `http://127.0.0.1:8001` and one random shared token
-in both `apps/server/.env` and `knowledge_base/.env`. The API returns a
-specific configuration error when the hosted or knowledge service is
-unavailable; Codex can still answer without knowledge when that optional
-service is down.
+knowledge is searched in Postgres through the `search_company_knowledge`
+full-text function, so it needs no extra service or configuration. Codex can
+still answer without knowledge if that search fails.
 
 The production event path is:
 
-`Composio trigger → signed webhook → company_events → knowledge worker → Graphiti + Cloudpedia projections`
+`Composio trigger → signed webhook → company_events → knowledge worker → Cloudpedia projections`
 
-Cloudpedia projections are written after successful event ingestion. Restarting
+Company events are searchable as soon as they are stored. Cloudpedia
+projections are written by the worker. Restarting
 the worker also backfills projections for previously processed events, so
 existing integration history becomes visible without replaying provider events.
 

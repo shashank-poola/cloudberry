@@ -1,7 +1,6 @@
 import { assertCompanyEvent, type CompanyEvent } from "@cloudberry/contracts"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { WorkerConfig } from "../config"
-import { ingestEvent } from "../knowledge-client"
 import { projectEvent } from "./project-event"
 
 type ClaimedJob = {
@@ -60,7 +59,6 @@ export const processNextJob = async (
 
   try {
     const event = await getEvent(database, job.company_event_id)
-    await ingestEvent(config, event)
     await projectEvent(database, event)
     await markSucceeded(database, job, event)
   } catch (error) {

@@ -6,8 +6,6 @@ export type DatabaseConfig = {
 }
 
 export type WorkerConfig = DatabaseConfig & {
-  knowledgeServiceUrl: string
-  knowledgeServiceToken: string
   pollIntervalMs: number
   maxAttempts: number
 }
@@ -55,8 +53,6 @@ export const getDatabaseConfig = (): DatabaseConfig => ({
 
 export const getWorkerConfig = (): WorkerConfig => ({
   ...getDatabaseConfig(),
-  knowledgeServiceUrl: required("KNOWLEDGE_SERVICE_URL").replace(/\/$/, ""),
-  knowledgeServiceToken: required("KNOWLEDGE_SERVICE_TOKEN"),
   pollIntervalMs: positiveInteger("WORKER_POLL_INTERVAL_MS", 1000),
   maxAttempts: positiveInteger("WORKER_MAX_ATTEMPTS", 5),
 })

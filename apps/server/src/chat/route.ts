@@ -15,7 +15,6 @@ import {
 import {
   KnowledgeClientError,
   createKnowledgeClient,
-  type KnowledgeClientLike,
 } from "../knowledge/client"
 import {
   GeneralComputeClientError,
@@ -54,20 +53,17 @@ const createLazyGeneralComputeClient = (): GeneralComputeClientLike => ({
     createGeneralComputeClient().createChatCompletion(request),
 })
 
-const createLazyKnowledgeClient = (): KnowledgeClientLike => ({
-  search: (organizationId, query, limit) =>
-    createKnowledgeClient().search(organizationId, query, limit),
-})
+const createService = (dependencies?: ChatServiceDependencies) => {
+  if (dependencies) return new ChatService(dependencies)
 
-const createService = (dependencies?: ChatServiceDependencies) =>
-  new ChatService(
-    dependencies ?? {
-      database: getSupabaseAdminClient(),
-      generalCompute: createLazyGeneralComputeClient(),
-      knowledge: createLazyKnowledgeClient(),
-      codex: createLazyCodexRuntime(),
-    }
-  )
+  const database = getSupabaseAdminClient()
+  return new ChatService({
+    database,
+    generalCompute: createLazyGeneralComputeClient(),
+    knowledge: createKnowledgeClient({ database }),
+    codex: createLazyCodexRuntime(),
+  })
+}
 
 const getOrganizationId = (req: Request, res: Response) => {
   if (!req.organization?.id) {

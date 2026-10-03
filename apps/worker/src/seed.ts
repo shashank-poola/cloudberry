@@ -15,7 +15,7 @@ const fixtureNames = [
 
 const fixtureDirectory = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  "../../../knowledge_base/tests/fixtures"
+  "../fixtures"
 )
 
 const getSeedOrganizationId = () => {
@@ -74,8 +74,7 @@ const replaceReferences = (
 }
 
 /**
- * Scope fixtures to one workspace before they are persisted or sent to the
- * knowledge service. IDs are target-specific so a fixture run cannot collide
+ * Scope fixtures to one workspace before they are persisted. IDs are target-specific so a fixture run cannot collide
  * with an earlier run for the fixture organization.
  */
 export const scopeSeedEvents = (

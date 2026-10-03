@@ -1,8 +1,8 @@
 # Cloudberry
 
 Cloudberry is a company knowledge workspace. It combines Supabase Auth and
-Postgres, a TypeScript ingestion worker, and a private Python knowledge service
-backed by Graphiti and FalkorDB.
+Postgres, a TypeScript API server, and a TypeScript worker. Company knowledge
+search uses Postgres full-text search over ingested company events.
 
 ## Architecture
 
@@ -10,18 +10,14 @@ backed by Graphiti and FalkorDB.
 Browser (Next.js app)
         |
         v
-TypeScript API server -----> Supabase Auth/Postgres
-        ^                         |
-        |                         v
-Python knowledge service <--- TypeScript worker
+TypeScript API server -----> Supabase Auth/Postgres <----- TypeScript worker
         |
         v
-FalkorDB Cloud + General Compute + local FastEmbed
+General Compute (hosted chat)
 ```
 
-The browser never connects directly to FalkorDB or the internal knowledge
-service. The worker uses the Supabase service-role key and the knowledge service
-uses its own internal bearer token.
+The browser never connects to Postgres with elevated access. The API server and
+worker use the Supabase service-role key on the server side only.
 
 ## Repository layout
 
@@ -31,33 +27,28 @@ uses its own internal bearer token.
 - `apps/worker` — Supabase job worker and optional fixture-only tools
 - `packages/contracts` — shared event and knowledge contracts
 - `packages/ui` — shared React UI components
-- `knowledge_base` — private FastAPI/Graphiti service
 - `supabase` — database migrations and hosted Supabase setup notes
 
 ## Prerequisites
 
 - Bun `1.2.22` and Node.js 20+
-- Python 3.10+
 - A hosted Supabase project
-- A FalkorDB Cloud database
-- A General Compute API key for Graphiti extraction
+- A General Compute API key for hosted chat
 
 ## Install
 
 ```powershell
 bun install
-python -m pip install -e ".\\knowledge_base[test]"
 ```
 
 Create the environment files locally from your private deployment
 configuration. Safe variable-name templates are checked in for the browser,
-worker, and knowledge service; they contain placeholders only. Use these local
+server, and worker; they contain placeholders only. Use these local
 file locations:
 
 - `apps/app/.env.local` (copy from `apps/app/.env.example`)
 - `apps/server/.env` (copy from `apps/server/.env.example`)
 - `apps/worker/.env` (copy from `apps/worker/.env.example`)
-- `knowledge_base/.env` (copy from `knowledge_base/.env.example`)
 - `supabase/.env`
 
 Never commit environment files, service-role keys, database passwords, or
@@ -81,16 +72,7 @@ to the API webhook.
 
 ## Run locally
 
-Start the private knowledge service in one terminal:
-
-```powershell
-python -m uvicorn app.main:app `
-  --app-dir .\\knowledge_base `
-  --host 0.0.0.0 `
-  --port 8001
-```
-
-Start the worker in another terminal:
+Start the worker in one terminal:
 
 ```powershell
 cd apps/worker
@@ -111,10 +93,6 @@ cd apps/app
 bun run dev
 ```
 
-The knowledge service exposes `/health`, plus authenticated internal routes for
-episode ingestion and organization-scoped search. It returns `503` from health
-until its FalkorDB, LLM, embedding, and token configuration is valid.
-
 ## Validation
 
 Run the TypeScript checks and production builds from the repository root:
@@ -123,14 +101,6 @@ Run the TypeScript checks and production builds from the repository root:
 bun run typecheck
 bun run lint
 bun run build
-```
-
-Run the knowledge-service tests:
-
-```powershell
-cd knowledge_base
-python -m pytest tests -q
-python -m compileall -q app tests
 ```
 
 Cloudpedia is backed by organization-scoped `knowledge_projections`. The
@@ -146,20 +116,12 @@ The backfill is for existing integration events; it does not create company
 content. The `seed` command is only a fixture utility for automated tests or a
 throwaway local workspace and is not part of the production data path.
 
-The hosted Graphiti integration test is opt-in because it uses FalkorDB and LLM
-resources:
-
-```powershell
-$env:RUN_LIVE_GRAPH_TESTS = "true"
-python -m pytest tests/test_graph_integration.py -q
-```
-
 ## Current scope
 
 The ingestion pipeline is validated end to end: Supabase company events are
-received from Composio triggers, claimed by the worker, ingested into
-Graphiti/FalkorDB, projected for Cloudpedia, and returned through
-organization-scoped search with event provenance.
+received from Composio triggers, claimed by the worker, projected for
+Cloudpedia, and returned through organization-scoped Postgres full-text search
+with event provenance.
 
 Codex is a standalone first-class integration, separate from the Prized
 computer resource. Users connect their OpenAI account through the Codex device
